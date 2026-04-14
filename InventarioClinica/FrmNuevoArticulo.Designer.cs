@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmNuevoArticulo));
             this.cmbEstante = new System.Windows.Forms.ComboBox();
             this.txtCodigo = new System.Windows.Forms.TextBox();
             this.txtNombre = new System.Windows.Forms.TextBox();
@@ -37,13 +38,23 @@
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
+            this.txtConcentracion = new System.Windows.Forms.TextBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.numMaximaCantidad = new System.Windows.Forms.NumericUpDown();
+            this.label7 = new System.Windows.Forms.Label();
+            this.txtPideMasVencera = new System.Windows.Forms.TextBox();
+            this.numMinimaCantidad = new System.Windows.Forms.NumericUpDown();
+            this.label8 = new System.Windows.Forms.Label();
+            ((System.ComponentModel.ISupportInitialize)(this.numMaximaCantidad)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numMinimaCantidad)).BeginInit();
             this.SuspendLayout();
             // 
             // cmbEstante
             // 
             this.cmbEstante.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cmbEstante.FormattingEnabled = true;
-            this.cmbEstante.Location = new System.Drawing.Point(29, 86);
+            this.cmbEstante.Location = new System.Drawing.Point(30, 85);
             this.cmbEstante.Name = "cmbEstante";
             this.cmbEstante.Size = new System.Drawing.Size(136, 27);
             this.cmbEstante.TabIndex = 1;
@@ -67,7 +78,7 @@
             // txtPresentacion
             // 
             this.txtPresentacion.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtPresentacion.Location = new System.Drawing.Point(502, 85);
+            this.txtPresentacion.Location = new System.Drawing.Point(492, 85);
             this.txtPresentacion.Name = "txtPresentacion";
             this.txtPresentacion.Size = new System.Drawing.Size(115, 26);
             this.txtPresentacion.TabIndex = 4;
@@ -75,7 +86,7 @@
             // btnGuardar
             // 
             this.btnGuardar.Font = new System.Drawing.Font("Calisto MT", 12F);
-            this.btnGuardar.Location = new System.Drawing.Point(296, 182);
+            this.btnGuardar.Location = new System.Drawing.Point(326, 225);
             this.btnGuardar.Name = "btnGuardar";
             this.btnGuardar.Size = new System.Drawing.Size(118, 35);
             this.btnGuardar.TabIndex = 5;
@@ -88,7 +99,7 @@
             this.label1.AutoSize = true;
             this.label1.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.label1.Font = new System.Drawing.Font("Lucida Bright", 12F, System.Drawing.FontStyle.Bold);
-            this.label1.Location = new System.Drawing.Point(41, 65);
+            this.label1.Location = new System.Drawing.Point(42, 64);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(67, 18);
             this.label1.TabIndex = 6;
@@ -121,17 +132,101 @@
             this.label4.AutoSize = true;
             this.label4.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.label4.Font = new System.Drawing.Font("Lucida Bright", 12F, System.Drawing.FontStyle.Bold);
-            this.label4.Location = new System.Drawing.Point(499, 64);
+            this.label4.Location = new System.Drawing.Point(489, 64);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(111, 18);
             this.label4.TabIndex = 9;
             this.label4.Text = "Presentación";
             // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.label5.Font = new System.Drawing.Font("Lucida Bright", 12F, System.Drawing.FontStyle.Bold);
+            this.label5.Location = new System.Drawing.Point(637, 66);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(123, 18);
+            this.label5.TabIndex = 11;
+            this.label5.Text = "Concentración";
+            // 
+            // txtConcentracion
+            // 
+            this.txtConcentracion.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtConcentracion.Location = new System.Drawing.Point(640, 87);
+            this.txtConcentracion.Name = "txtConcentracion";
+            this.txtConcentracion.Size = new System.Drawing.Size(115, 26);
+            this.txtConcentracion.TabIndex = 10;
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.label6.Font = new System.Drawing.Font("Lucida Bright", 12F, System.Drawing.FontStyle.Bold);
+            this.label6.Location = new System.Drawing.Point(42, 144);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(203, 18);
+            this.label6.TabIndex = 13;
+            this.label6.Text = "Máxima Cantidad a pedir";
+            // 
+            // numMaximaCantidad
+            // 
+            this.numMaximaCantidad.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.numMaximaCantidad.Location = new System.Drawing.Point(45, 165);
+            this.numMaximaCantidad.Name = "numMaximaCantidad";
+            this.numMaximaCantidad.Size = new System.Drawing.Size(120, 26);
+            this.numMaximaCantidad.TabIndex = 14;
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.label7.Font = new System.Drawing.Font("Lucida Bright", 12F, System.Drawing.FontStyle.Bold);
+            this.label7.Location = new System.Drawing.Point(499, 144);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(190, 18);
+            this.label7.TabIndex = 16;
+            this.label7.Text = "Si pide más se vencera";
+            // 
+            // txtPideMasVencera
+            // 
+            this.txtPideMasVencera.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtPideMasVencera.Location = new System.Drawing.Point(511, 165);
+            this.txtPideMasVencera.Name = "txtPideMasVencera";
+            this.txtPideMasVencera.Size = new System.Drawing.Size(115, 26);
+            this.txtPideMasVencera.TabIndex = 15;
+            // 
+            // numMinimaCantidad
+            // 
+            this.numMinimaCantidad.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.numMinimaCantidad.Location = new System.Drawing.Point(271, 165);
+            this.numMinimaCantidad.Name = "numMinimaCantidad";
+            this.numMinimaCantidad.Size = new System.Drawing.Size(120, 26);
+            this.numMinimaCantidad.TabIndex = 18;
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.label8.Font = new System.Drawing.Font("Lucida Bright", 12F, System.Drawing.FontStyle.Bold);
+            this.label8.Location = new System.Drawing.Point(268, 144);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(197, 18);
+            this.label8.TabIndex = 17;
+            this.label8.Text = "Minima Cantidad a pedir";
+            // 
             // FrmNuevoArticulo
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(717, 270);
+            this.ClientSize = new System.Drawing.Size(789, 285);
+            this.Controls.Add(this.numMinimaCantidad);
+            this.Controls.Add(this.label8);
+            this.Controls.Add(this.label7);
+            this.Controls.Add(this.txtPideMasVencera);
+            this.Controls.Add(this.numMaximaCantidad);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.txtConcentracion);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
@@ -141,10 +236,13 @@
             this.Controls.Add(this.txtNombre);
             this.Controls.Add(this.txtCodigo);
             this.Controls.Add(this.cmbEstante);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "FrmNuevoArticulo";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Nuevo Articulo";
             this.Load += new System.EventHandler(this.FrmNuevoArticulo_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.numMaximaCantidad)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numMinimaCantidad)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -161,5 +259,13 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox txtConcentracion;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.NumericUpDown numMaximaCantidad;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.TextBox txtPideMasVencera;
+        private System.Windows.Forms.NumericUpDown numMinimaCantidad;
+        private System.Windows.Forms.Label label8;
     }
 }
