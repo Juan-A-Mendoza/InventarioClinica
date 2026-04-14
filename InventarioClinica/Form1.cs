@@ -24,6 +24,9 @@ namespace InventarioClinica
         private void Form1_Load(object sender, EventArgs e)
         {
             CargarEstantes();
+            dtpBuscarDesde.Value = DateTime.Now;
+            dtpBuscarHasta.Value = DateTime.Now;
+            dtpFecha.Value = DateTime.Now;
         }
         
         private void CargarEstantes()
@@ -69,7 +72,7 @@ namespace InventarioClinica
             using (var conexion = new SqliteConnection(cadenaConexion))
             {
                 conexion.Open();
-                string query = "SELECT Codigo, Nombre FROM Articulos WHERE IdEstante = @IdEstante";
+                string query = "SELECT Codigo, Nombre, Presentacion FROM Articulos WHERE IdEstante = @IdEstante";
 
                 using (var comando = new SqliteCommand(query, conexion))
                 {
@@ -87,6 +90,7 @@ namespace InventarioClinica
                             cmbArticulos.DataSource = dtArticulos;
                             cmbArticulos.DisplayMember = "Nombre";
                             cmbArticulos.ValueMember = "Codigo";
+                            cmbArticulos.ValueMember = "Codigo";
                         }
                         else
                         {
@@ -97,6 +101,7 @@ namespace InventarioClinica
 
                             // También limpiamos los controles dependientes para evitar errores
                             txtCodigoSeleccionado.Text = "";
+                            txtPresentacionSeleccionada.Text = "";
                             dgvKardex.Rows.Clear();
                         }
                     }
@@ -104,14 +109,7 @@ namespace InventarioClinica
             }
         }
 
-        private void btnNuevoArticulo_Click(object sender, EventArgs e)
-        {
-            FrmNuevoArticulo frm = new FrmNuevoArticulo();
-            frm.ShowDialog(); // ShowDialog hace que no puedas tocar el Kardex hasta que cierres esta ventanita
     
-            // Aquí (luego de cerrar la ventanita) podríamos forzar a que el ComboBox de artículos se recargue.
-
-        }
 
         private void btnRegistrar_Click(object sender, EventArgs e)
         {
@@ -259,36 +257,31 @@ namespace InventarioClinica
 
         private void cmbArticulos_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (cmbArticulos.SelectedValue != null && cmbArticulos.SelectedValue is string codigo)
+            if (cmbArticulos.SelectedValue != null)
             {
-                txtCodigoSeleccionado.Text = codigo; // <--- AGREGAMOS ESTA LÍNEA
-                ActualizarTablaKardex(codigo);
+                DataRowView drv = cmbArticulos.SelectedItem as DataRowView;
+
+                if(drv != null)
+                {
+                    string codigo = drv["Codigo"].ToString();
+                    string presentacion = drv["Presentacion"].ToString();
+
+                    txtCodigoSeleccionado.Text = codigo;
+                    txtPresentacionSeleccionada.Text = presentacion;
+
+                    ActualizarTablaKardex(codigo);
+                }
             }
-            // Controlamos el caso en el que la primera carga viene como DataRowView:
-            else if (cmbArticulos.SelectedValue != null && cmbArticulos.SelectedValue is System.Data.DataRowView drv)
-            {
-                string codigoDrv = drv["Codigo"].ToString();
-                txtCodigoSeleccionado.Text = codigoDrv; // <--- AGREGAMOS ESTA LÍNEA
-                ActualizarTablaKardex(codigoDrv);
-            }
+            
         }
 
         private void btnExportarExcel_Click(object sender, EventArgs e)
         {
-            // 1. Verificamos que haya un estante seleccionado
-            if (cmbEstantes.SelectedValue == null || !(cmbEstantes.SelectedValue is long idEstante))
-            {
-                MessageBox.Show("Por favor, selecciona un estante primero.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
+            if (cmbEstantes.SelectedValue == null || !(cmbEstantes.SelectedValue is long idEstante)) return;
 
-            string nombreEstante = cmbEstantes.Text;
-
-            // 2. Le preguntamos al usuario dónde quiere guardar el archivo
             SaveFileDialog dialog = new SaveFileDialog();
             dialog.Filter = "Archivo de Excel|*.xlsx";
-            dialog.Title = "Guardar inventario de " + nombreEstante;
-            dialog.FileName = nombreEstante + ".xlsx"; // Nombre por defecto (Ej: "Estante 1.xlsx")
+            dialog.FileName = cmbEstantes.Text + "_Kardex.xlsx";
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
@@ -299,256 +292,803 @@ namespace InventarioClinica
                         using (var conexion = new SqliteConnection(cadenaConexion))
                         {
                             conexion.Open();
-
-                            // 3. Buscamos TODOS los artículos de este estante
-                            string queryArticulos = "SELECT Codigo, Nombre, Presentacion FROM Articulos WHERE IdEstante = @IdEstante";
+                            string queryArticulos = "SELECT Codigo, Nombre, Presentacion, Concentracion, MaximaCantidad, PideMasVencera, MinimaCantidad FROM Articulos WHERE IdEstante = @IdEstante";
                             using (var cmdArticulos = new SqliteCommand(queryArticulos, conexion))
                             {
                                 cmdArticulos.Parameters.AddWithValue("@IdEstante", idEstante);
                                 using (var readerArticulos = cmdArticulos.ExecuteReader())
                                 {
+                                    int contadorArticulos = 0;
+                                    int hojaIndex = 1;
+                                    IXLWorksheet ws = null;
                                     bool tieneArticulos = false;
 
                                     while (readerArticulos.Read())
                                     {
                                         tieneArticulos = true;
+
+                                        // Si es múltiplo de 3 (0, 3, 6...), creamos una hoja nueva
+                                        if (contadorArticulos % 3 == 0)
+                                        {
+                                            ws = workbook.Worksheets.Add("Kardex_Pag" + hojaIndex);
+                                            hojaIndex++;
+
+                                            // ---> NUEVA CONFIGURACIÓN DE IMPRESIÓN <---
+                                            // 1. Orientación Horizontal
+                                            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+
+                                            // 2. Tamaño Carta estándar
+                                            ws.PageSetup.PaperSize = XLPaperSize.LetterPaper;
+
+                                            // 3. Márgenes estrechos para aprovechar al máximo la hoja
+                                            ws.PageSetup.Margins.SetTop(0.5);
+                                            ws.PageSetup.Margins.SetBottom(0.5);
+                                            ws.PageSetup.Margins.SetLeft(0.25);
+                                            ws.PageSetup.Margins.SetRight(0.25);
+
+                                            // 4. ¡LA MAGIA! Fuerza a Excel a encoger todo para que quepa en 1 hoja de ancho por 1 de alto
+                                            ws.PageSetup.FitToPages(1, 1);
+                                            // -------------------------
+                                        }
+
+                                        // MATEMÁTICA: Calculamos dónde empieza la columna (1, 8 o 15)
+                                        int c = (contadorArticulos % 3) * 7 + 1;
+
                                         string codigo = readerArticulos["Codigo"].ToString();
                                         string nombreArticulo = readerArticulos["Nombre"].ToString();
-                                        string presentacion = readerArticulos["Presentacion"].ToString();
 
-                                        // 4. Creamos una hoja por cada artículo (El nombre de la hoja será el nombre del medicamento)
-                                        // Nota: Excel no permite nombres de hojas de más de 31 caracteres ni ciertos símbolos.
-                                        string nombreHoja = nombreArticulo.Length > 30 ? nombreArticulo.Substring(0, 30) : nombreArticulo;
-                                        var worksheet = workbook.Worksheets.Add(nombreHoja);
+                                        // --- ENCABEZADO ---
+                                        string rutaLogo = "logo.jpeg";
+                                        if (System.IO.File.Exists(rutaLogo))
+                                        {
+                                            ws.AddPicture(rutaLogo).MoveTo(ws.Cell(1, c)).WithSize(60, 60);
+                                        }
 
-                                        // 5. Ponemos los encabezados igual a tu imagen
-                                        worksheet.Cell(1, 1).Value = "Fecha";
-                                        worksheet.Cell(1, 2).Value = "Nombre";
-                                        worksheet.Cell(1, 3).Value = "Codigo";
-                                        worksheet.Cell(1, 4).Value = "Presentacion";
-                                        worksheet.Cell(1, 5).Value = "Documento";
-                                        worksheet.Cell(1, 6).Value = "Entrada";
-                                        worksheet.Cell(1, 7).Value = "Salida";
-                                        worksheet.Cell(1, 8).Value = "Existencia";
-                                        worksheet.Cell(1, 9).Value = "Observaciones";
+                                        ws.Cell(1, c + 1).Value = "HOSPITAL ADVENTISTA DE VENEZUELA";
+                                        ws.Cell(2, c + 1).Value = "RIF J-08517758-2";
+                                        ws.Cell(3, c + 1).Value = "CARDEX";
+                                        ws.Range(1, c + 1, 3, c + 3).Style.Font.Bold = true;
+                                        ws.Range(1, c + 1, 3, c + 3).Style.Font.FontSize = 10;
 
-                                        // Le damos un poco de formato a los encabezados (Negrita)
-                                        worksheet.Range("A1:I1").Style.Font.Bold = true;
+                                        // Tu ajuste en la Fila 3 (Equivalente a F3 para la primera tarjeta)
+                                        ws.Cell(3, c + 4).Value = "Código:";
+                                        ws.Cell(3, c + 4).Style.Font.Bold = true;
+                                        ws.Cell(3, c + 5).Value = "'" + codigo;
+                                        ws.Cell(3, c + 5).Style.Font.FontSize = 14;
+                                        ws.Cell(3, c + 5).Style.Font.Bold = true;
 
-                                        // 6. Buscamos los movimientos de ESTE artículo
+                                        // --- BLOQUE DE DATOS ---
+                                        ws.Cell(4, c).Value = "NOMBRE DEL MEDICAMENTO";
+                                        ws.Cell(5, c).Value = "CONCENTRACIÓN";
+                                        ws.Cell(6, c).Value = "PRESENTACIÓN (JARABE, AMPOLLAS, TABLETAS)";
+                                        ws.Cell(7, c).Value = "MÁXIMA CANTIDAD A PEDIR";
+                                        ws.Cell(8, c).Value = "SI PIDE MÁS SE VENCERÁ";
+                                        ws.Cell(9, c).Value = "MÍNIMA CANTIDAD A TENER";
+
+                                        ws.Cell(4, c + 3).Value = nombreArticulo;
+                                        ws.Cell(5, c + 3).Value = readerArticulos["Concentracion"].ToString();
+                                        ws.Cell(6, c + 3).Value = readerArticulos["Presentacion"].ToString();
+                                        ws.Cell(7, c + 3).Value = readerArticulos["MaximaCantidad"].ToString();
+                                        ws.Cell(8, c + 3).Value = readerArticulos["PideMasVencera"].ToString();
+                                        ws.Cell(9, c + 3).Value = readerArticulos["MinimaCantidad"].ToString();
+
+                                        var bloqueDatos = ws.Range(4, c, 9, c + 5);
+                                        bloqueDatos.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                                        bloqueDatos.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                                        ws.Range(4, c, 9, c).Style.Font.FontSize = 9;
+
+                                        for (int i = 4; i <= 9; i++)
+                                        {
+                                            ws.Range(i, c, i, c + 2).Merge();
+                                            ws.Range(i, c + 3, i, c + 5).Merge();
+                                        }
+
+                                        // --- TABLA DE MOVIMIENTOS ---
+                                        int filaHeader = 11;
+                                        ws.Cell(filaHeader, c).Value = "FECHA";
+                                        ws.Cell(filaHeader, c + 1).Value = "DOCUMENTO";
+                                        ws.Cell(filaHeader, c + 2).Value = "ENTRADA";
+                                        ws.Cell(filaHeader, c + 3).Value = "SALIDA";
+                                        ws.Cell(filaHeader, c + 4).Value = "EXISTENCIA";
+                                        ws.Cell(filaHeader, c + 5).Value = "OBSERVACIONES";
+
+                                        var rangoHeaders = ws.Range(filaHeader, c, filaHeader, c + 5);
+                                        rangoHeaders.Style.Font.Bold = true;
+                                        rangoHeaders.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                                        rangoHeaders.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                                        rangoHeaders.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
                                         string queryMov = "SELECT Fecha, Documento, Entrada, Salida, Existencia, Observaciones FROM Movimientos WHERE CodigoArticulo = @Codigo ORDER BY Id ASC";
                                         using (var cmdMov = new SqliteCommand(queryMov, conexion))
                                         {
                                             cmdMov.Parameters.AddWithValue("@Codigo", codigo);
                                             using (var readerMov = cmdMov.ExecuteReader())
                                             {
-                                                int fila = 2; // Empezamos en la fila 2 porque la 1 tiene los encabezados
+                                                int fila = 12;
                                                 while (readerMov.Read())
                                                 {
-                                                    worksheet.Cell(fila, 1).Value = readerMov["Fecha"].ToString();
-                                                    worksheet.Cell(fila, 2).Value = nombreArticulo;
-                                                    worksheet.Cell(fila, 3).Value = "'" + codigo; // El apóstrofe evita que Excel borre los ceros a la izquierda
-                                                    worksheet.Cell(fila, 4).Value = presentacion;
-                                                    worksheet.Cell(fila, 5).Value = readerMov["Documento"].ToString();
+                                                    ws.Cell(fila, c).Value = readerMov["Fecha"].ToString();
+                                                    ws.Cell(fila, c + 1).Value = readerMov["Documento"].ToString();
+                                                    ws.Cell(fila, c + 2).Value = readerMov["Entrada"] != DBNull.Value ? readerMov["Entrada"].ToString() : "-";
+                                                    ws.Cell(fila, c + 3).Value = readerMov["Salida"] != DBNull.Value ? readerMov["Salida"].ToString() : "-";
+                                                    ws.Cell(fila, c + 4).Value = readerMov["Existencia"].ToString();
+                                                    ws.Cell(fila, c + 5).Value = readerMov["Observaciones"].ToString();
 
-                                                    // La magia de los guiones para entradas y salidas
-                                                    worksheet.Cell(fila, 6).Value = readerMov["Entrada"] != DBNull.Value ? readerMov["Entrada"].ToString() : "-";
-                                                    worksheet.Cell(fila, 7).Value = readerMov["Salida"] != DBNull.Value ? readerMov["Salida"].ToString() : "-";
-
-                                                    worksheet.Cell(fila, 8).Value = readerMov["Existencia"].ToString();
-                                                    worksheet.Cell(fila, 9).Value = readerMov["Observaciones"].ToString();
-
-                                                    // Centramos las columnas de entrada, salida y existencia
-                                                    worksheet.Cell(fila, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                                                    worksheet.Cell(fila, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                                                    worksheet.Cell(fila, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
+                                                    ws.Range(fila, c + 2, fila, c + 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                                                     fila++;
+                                                }
+
+                                                if (fila > 12)
+                                                {
+                                                    var tablaMovimientos = ws.Range(11, c, fila - 1, c + 5);
+                                                    tablaMovimientos.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                                                    tablaMovimientos.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
                                                 }
                                             }
                                         }
 
-                                        // Ajustamos el ancho de las columnas automáticamente para que se vea bien
-                                        worksheet.Columns().AdjustToContents();
+                                        // Ajustamos anchos de esta tarjeta específica
+                                        ws.Column(c).Width = 12;
+                                        ws.Column(c + 1).Width = 15;
+                                        ws.Column(c + 2).Width = 10;
+                                        ws.Column(c + 3).Width = 10;
+                                        ws.Column(c + 4).Width = 12;
+                                        ws.Column(c + 5).Width = 25;
+
+                                        contadorArticulos++;
                                     }
 
-                                    // Si el estante estaba vacío, creamos una hoja en blanco para que Excel no dé error
-                                    if (!tieneArticulos)
-                                    {
-                                        workbook.Worksheets.Add("Sin Artículos");
-                                    }
+                                    if (!tieneArticulos) workbook.Worksheets.Add("Sin Artículos");
                                 }
                             }
                         }
-
-                        // 7. Guardamos el archivo físicamente en la PC
                         workbook.SaveAs(dialog.FileName);
-                        MessageBox.Show("Archivo Excel exportado con éxito.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show("Archivo Excel exportado con 3 tarjetas por hoja.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error al exportar a Excel: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Error al exportar: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
 
+
         private void btnImportarExcel_Click(object sender, EventArgs e)
         {
-            // 1. Asegurarnos de que el usuario haya seleccionado a qué estante van estos datos
-            if (cmbEstantes.SelectedValue == null || !(cmbEstantes.SelectedValue is long idEstante))
-            {
-                MessageBox.Show("Por favor, selecciona el Estante al que deseas importar los datos.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
+            if (cmbEstantes.SelectedValue == null || !(cmbEstantes.SelectedValue is long idEstante)) return;
 
-            // 2. Abrir la ventana para buscar el archivo .xlsx
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Filter = "Archivos de Excel|*.xlsx";
-            dialog.Title = "Seleccionar archivo de inventario para importar";
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
-                    // Leemos el Excel seleccionado
                     using (var workbook = new XLWorkbook(dialog.FileName))
                     {
                         using (var conexion = new SqliteConnection(cadenaConexion))
                         {
                             conexion.Open();
-
-                            // Iniciamos una transacción de seguridad
                             using (var transaccion = conexion.BeginTransaction())
                             {
-                                // Recorremos cada pestaña (hoja) del Excel
                                 foreach (var worksheet in workbook.Worksheets)
                                 {
-                                    // Ignoramos hojas en blanco o de control
                                     if (worksheet.Name == "Sin Artículos") continue;
 
-                                    // La fila 1 tiene los encabezados, la fila 2 tiene el primer dato real
-                                    int fila = 2;
-
-                                    // Si la celda A2 está vacía, la hoja no tiene datos, saltamos a la siguiente
-                                    if (worksheet.Cell(fila, 1).IsEmpty()) continue;
-
-                                    // Capturamos los datos básicos del artículo leyendo la fila 2
-                                    string nombreArticulo = worksheet.Cell(fila, 2).GetString().Trim();
-                                    string codigoArticulo = worksheet.Cell(fila, 3).GetString().Replace("'", "").Trim();
-                                    string presentacion = worksheet.Cell(fila, 4).GetString().Trim();
-
-                                    if (string.IsNullOrEmpty(codigoArticulo)) continue;
-
-                                    // 3. Verificar si el artículo ya existe en la Base de Datos
-                                    string queryVerificar = "SELECT COUNT(*) FROM Articulos WHERE Codigo = @Codigo";
-                                    using (var cmdVerificar = new SqliteCommand(queryVerificar, conexion, transaccion))
+                                    // Hacemos un ciclo para revisar las 3 posiciones posibles de tarjetas en esta hoja
+                                    for (int i = 0; i < 3; i++)
                                     {
-                                        cmdVerificar.Parameters.AddWithValue("@Codigo", codigoArticulo);
-                                        long existe = (long)cmdVerificar.ExecuteScalar();
+                                        int c = (i * 7) + 1; // Genera columnas: 1, 8 y 15
 
-                                        // Si no existe (es un artículo nuevo), lo registramos automáticamente
-                                        if (existe == 0)
+                                        // Buscamos el código en la fila 3, columna c+5 (Equivalente a F3, M3, T3)
+                                        string codigoArticulo = worksheet.Cell(3, c + 5).GetString().Replace("'", "").Trim();
+
+                                        // Si en este espacio no hay código, significa que no hay tarjeta. Pasamos al siguiente.
+                                        if (string.IsNullOrEmpty(codigoArticulo)) continue;
+
+                                        string nombreArticulo = worksheet.Cell(4, c + 3).GetString().Trim();
+                                        string concentracion = worksheet.Cell(5, c + 3).GetString().Trim();
+                                        string presentacion = worksheet.Cell(6, c + 3).GetString().Trim();
+
+                                        int.TryParse(worksheet.Cell(7, c + 3).GetString(), out int maximaCantidad);
+                                        string pideMasVencera = worksheet.Cell(8, c + 3).GetString().Trim();
+                                        int.TryParse(worksheet.Cell(9, c + 3).GetString(), out int minimaCantidad);
+
+                                        // --- ACTUALIZAR O CREAR ARTÍCULO ---
+                                        string queryVerificar = "SELECT COUNT(*) FROM Articulos WHERE Codigo = @Codigo";
+                                        using (var cmdVerificar = new SqliteCommand(queryVerificar, conexion, transaccion))
                                         {
-                                            string queryInsertarArticulo = "INSERT INTO Articulos (Codigo, Nombre, Presentacion, IdEstante) VALUES (@Codigo, @Nombre, @Presentacion, @IdEstante)";
-                                            using (var cmdInsertar = new SqliteCommand(queryInsertarArticulo, conexion, transaccion))
+                                            cmdVerificar.Parameters.AddWithValue("@Codigo", codigoArticulo);
+                                            if ((long)cmdVerificar.ExecuteScalar() == 0)
                                             {
-                                                cmdInsertar.Parameters.AddWithValue("@Codigo", codigoArticulo);
-                                                // Si por alguna razón el nombre está vacío en la celda, usamos el nombre de la pestaña
-                                                cmdInsertar.Parameters.AddWithValue("@Nombre", string.IsNullOrEmpty(nombreArticulo) ? worksheet.Name : nombreArticulo);
-                                                cmdInsertar.Parameters.AddWithValue("@Presentacion", presentacion);
-                                                cmdInsertar.Parameters.AddWithValue("@IdEstante", idEstante);
-                                                cmdInsertar.ExecuteNonQuery();
+                                                string queryInsertar = "INSERT INTO Articulos (Codigo, Nombre, Presentacion, Concentracion, MaximaCantidad, PideMasVencera, MinimaCantidad, IdEstante) VALUES (@Codigo, @Nombre, @Presentacion, @Concentracion, @MaximaCantidad, @PideMasVencera, @MinimaCantidad, @IdEstante)";
+                                                using (var cmd = new SqliteCommand(queryInsertar, conexion, transaccion))
+                                                {
+                                                    cmd.Parameters.AddWithValue("@Codigo", codigoArticulo);
+                                                    cmd.Parameters.AddWithValue("@Nombre", string.IsNullOrEmpty(nombreArticulo) ? "Articulo" : nombreArticulo);
+                                                    cmd.Parameters.AddWithValue("@Presentacion", presentacion);
+                                                    cmd.Parameters.AddWithValue("@Concentracion", concentracion);
+                                                    cmd.Parameters.AddWithValue("@MaximaCantidad", maximaCantidad);
+                                                    cmd.Parameters.AddWithValue("@PideMasVencera", pideMasVencera);
+                                                    cmd.Parameters.AddWithValue("@MinimaCantidad", minimaCantidad);
+                                                    cmd.Parameters.AddWithValue("@IdEstante", idEstante);
+                                                    cmd.ExecuteNonQuery();
+                                                }
+                                            }
+                                            else
+                                            {
+                                                string queryActualizar = "UPDATE Articulos SET Nombre = @Nombre, Presentacion = @Presentacion, Concentracion = @Concentracion, MaximaCantidad = @MaximaCantidad, PideMasVencera = @PideMasVencera, MinimaCantidad = @MinimaCantidad, IdEstante = @IdEstante WHERE Codigo = @Codigo";
+                                                using (var cmd = new SqliteCommand(queryActualizar, conexion, transaccion))
+                                                {
+                                                    cmd.Parameters.AddWithValue("@Codigo", codigoArticulo);
+                                                    cmd.Parameters.AddWithValue("@Nombre", nombreArticulo);
+                                                    cmd.Parameters.AddWithValue("@Presentacion", presentacion);
+                                                    cmd.Parameters.AddWithValue("@Concentracion", concentracion);
+                                                    cmd.Parameters.AddWithValue("@MaximaCantidad", maximaCantidad);
+                                                    cmd.Parameters.AddWithValue("@PideMasVencera", pideMasVencera);
+                                                    cmd.Parameters.AddWithValue("@MinimaCantidad", minimaCantidad);
+                                                    cmd.Parameters.AddWithValue("@IdEstante", idEstante);
+                                                    cmd.ExecuteNonQuery();
+                                                }
                                             }
                                         }
-                                        else
+
+                                        // --- LIMPIAR HISTORIAL ---
+                                        using (var cmdLimpiar = new SqliteCommand("DELETE FROM Movimientos WHERE CodigoArticulo = @Codigo", conexion, transaccion))
                                         {
-                                            // Si el artículo YA EXISTE, lo mudamos al nuevo estante que el usuario seleccionó
-                                            string queryMudarArticulo = "UPDATE Articulos SET IdEstante = @IdEstante WHERE Codigo = @Codigo";
-                                            using (var cmdMudar = new SqliteCommand(queryMudarArticulo, conexion, transaccion))
+                                            cmdLimpiar.Parameters.AddWithValue("@Codigo", codigoArticulo);
+                                            cmdLimpiar.ExecuteNonQuery();
+                                        }
+
+                                        // --- LEER MOVIMIENTOS ---
+                                        int fila = 12;
+                                        while (!worksheet.Cell(fila, c).IsEmpty())
+                                        {
+                                            string fechaCruda = worksheet.Cell(fila, c).GetString();
+                                            string fecha = fechaCruda;
+                                            if (DateTime.TryParse(fechaCruda, out DateTime fechaConvertida)) fecha = fechaConvertida.ToString("dd/MM/yyyy");
+                                            else if (fechaCruda.Length > 10) fecha = fechaCruda.Substring(0, 10).Trim();
+
+                                            string documento = worksheet.Cell(fila, c + 1).GetString();
+                                            string entradaStr = worksheet.Cell(fila, c + 2).GetString();
+                                            string salidaStr = worksheet.Cell(fila, c + 3).GetString();
+                                            string existenciaStr = worksheet.Cell(fila, c + 4).GetString();
+                                            string observaciones = worksheet.Cell(fila, c + 5).GetString();
+
+                                            object entrada = (entradaStr == "-" || string.IsNullOrWhiteSpace(entradaStr)) ? (object)DBNull.Value : Convert.ToInt32(entradaStr);
+                                            object salida = (salidaStr == "-" || string.IsNullOrWhiteSpace(salidaStr)) ? (object)DBNull.Value : Convert.ToInt32(salidaStr);
+                                            int existencia = string.IsNullOrWhiteSpace(existenciaStr) ? 0 : Convert.ToInt32(existenciaStr);
+
+                                            string queryInsertarMov = "INSERT INTO Movimientos (CodigoArticulo, Fecha, Documento, Entrada, Salida, Existencia, Observaciones) VALUES (@Codigo, @Fecha, @Documento, @Entrada, @Salida, @Existencia, @Observaciones)";
+                                            using (var cmdMov = new SqliteCommand(queryInsertarMov, conexion, transaccion))
                                             {
-                                                cmdMudar.Parameters.AddWithValue("@IdEstante", idEstante);
-                                                cmdMudar.Parameters.AddWithValue("@Codigo", codigoArticulo);
-                                                cmdMudar.ExecuteNonQuery();
+                                                cmdMov.Parameters.AddWithValue("@Codigo", codigoArticulo);
+                                                cmdMov.Parameters.AddWithValue("@Fecha", fecha);
+                                                cmdMov.Parameters.AddWithValue("@Documento", string.IsNullOrWhiteSpace(documento) ? (object)DBNull.Value : documento);
+                                                cmdMov.Parameters.AddWithValue("@Entrada", entrada);
+                                                cmdMov.Parameters.AddWithValue("@Salida", salida);
+                                                cmdMov.Parameters.AddWithValue("@Existencia", existencia);
+                                                cmdMov.Parameters.AddWithValue("@Observaciones", string.IsNullOrWhiteSpace(observaciones) ? (object)DBNull.Value : observaciones);
+                                                cmdMov.ExecuteNonQuery();
                                             }
+                                            fila++;
                                         }
-                                      
-                                    }
-                                    // Limpiamos el historial viejo de este artículo específico para no duplicar datos
-                                    string queryLimpiarKardex = "DELETE FROM Movimientos WHERE CodigoArticulo = @Codigo";
-                                    using (var cmdLimpiar = new SqliteCommand(queryLimpiarKardex, conexion, transaccion))
-                                    {
-                                        cmdLimpiar.Parameters.AddWithValue("@Codigo", codigoArticulo);
-                                        cmdLimpiar.ExecuteNonQuery();
-                                    }
-
-                                    // 4. Leer todo el historial de movimientos (Kardex) hacia abajo
-                                    while (!worksheet.Cell(fila, 1).IsEmpty())
-                                    {
-                                        string fechaCruda = worksheet.Cell(fila, 1).GetString();
-                                        string fecha = fechaCruda;
-
-                                        if (DateTime.TryParse(fechaCruda, out DateTime fechaConvertida))
-                                        {
-                                            //Se intenta limpiar la fecha para que no agregue la hora como lo hace por defecto excel
-                                            fecha = fechaConvertida.ToString("dd/MM/yyyy");
-                                        }
-                                        else if (fechaCruda.Length > 10)
-                                        {  
-                                            //si la conversion falla pero el texto es largo entonces se corta a la fuerza
-                                            fecha = fechaCruda.Substring(0, 10).Trim();
-                                        }
-                                        string documento = worksheet.Cell(fila, 5).GetString();
-                                        string entradaStr = worksheet.Cell(fila, 6).GetString();
-                                        string salidaStr = worksheet.Cell(fila, 7).GetString();
-                                        string existenciaStr = worksheet.Cell(fila, 8).GetString();
-                                        string observaciones = worksheet.Cell(fila, 9).GetString();
-
-                                        // Convertimos los guiones del Excel (-) o espacios vacíos a valores nulos para la BD
-                                        object entrada = (entradaStr == "-" || string.IsNullOrWhiteSpace(entradaStr)) ? (object)DBNull.Value : Convert.ToInt32(entradaStr);
-                                        object salida = (salidaStr == "-" || string.IsNullOrWhiteSpace(salidaStr)) ? (object)DBNull.Value : Convert.ToInt32(salidaStr);
-                                        int existencia = string.IsNullOrWhiteSpace(existenciaStr) ? 0 : Convert.ToInt32(existenciaStr);
-
-                                        // Guardamos el movimiento en el historial
-                                        string queryInsertarMov = @"INSERT INTO Movimientos 
-                                                            (CodigoArticulo, Fecha, Documento, Entrada, Salida, Existencia, Observaciones) 
-                                                            VALUES (@Codigo, @Fecha, @Documento, @Entrada, @Salida, @Existencia, @Observaciones)";
-
-                                        using (var cmdMov = new SqliteCommand(queryInsertarMov, conexion, transaccion))
-                                        {
-                                            cmdMov.Parameters.AddWithValue("@Codigo", codigoArticulo);
-                                            cmdMov.Parameters.AddWithValue("@Fecha", fecha);
-                                            cmdMov.Parameters.AddWithValue("@Documento", string.IsNullOrWhiteSpace(documento) ? (object)DBNull.Value : documento);
-                                            cmdMov.Parameters.AddWithValue("@Entrada", entrada);
-                                            cmdMov.Parameters.AddWithValue("@Salida", salida);
-                                            cmdMov.Parameters.AddWithValue("@Existencia", existencia);
-                                            cmdMov.Parameters.AddWithValue("@Observaciones", string.IsNullOrWhiteSpace(observaciones) ? (object)DBNull.Value : observaciones);
-                                            cmdMov.ExecuteNonQuery();
-                                        }
-                                        fila++; // Pasamos a la siguiente fila del Excel
-                                    }
+                                    } // Fin del For (Las 3 tarjetas)
                                 }
-                                // Si todo el Excel se leyó perfecto, confirmamos el guardado definitivo
                                 transaccion.Commit();
                             }
                         }
 
-                        MessageBox.Show("Datos importados correctamente. El inventario ha sido actualizado.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                        // Refrescamos el ComboBox para que aparezcan los medicamentos recién importados
+                        MessageBox.Show("Datos importados correctamente desde el formato panorámico.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        string codigoMantener = txtCodigoSeleccionado.Text;
                         CargarArticulosPorEstante(idEstante);
+
+                        if (!string.IsNullOrEmpty(codigoMantener))
+                        {
+                            cmbArticulos.SelectedValue = codigoMantener;
+                            ActualizarTablaKardex(codigoMantener);
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Ocurrió un error al leer el archivo Excel. Verifica que el formato sea correcto.\nDetalle: " + ex.Message, "Error Crítico", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Ocurrió un error al leer el archivo Excel: " + ex.Message, "Error Crítico", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
 
         private void btnBuscarFecha_Click(object sender, EventArgs e)
         {
+            DateTime FechaDesde = dtpBuscarDesde.Value.Date;
+            DateTime FechaHasta = dtpBuscarHasta.Value.Date;
 
+            if (FechaDesde > FechaHasta)
+            {
+                MessageBox.Show("La fecha 'Desde' no puede ser mayor que la fecha 'Hasta'.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            dgvKardex.CurrentCell = null; // Desseleccionamos cualquier celda para evitar problemas al ocultar filas
+
+           foreach (DataGridViewRow fila in dgvKardex.Rows)
+            {
+                if (fila.IsNewRow) continue;
+
+                string fehaStr = fila.Cells[0].Value?.ToString() ??""; 
+
+                if (DateTime.TryParseExact(fehaStr, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime fechaFila))
+                {
+                    if (fechaFila >= FechaDesde && fechaFila <= FechaHasta)
+                    {
+                        fila.Visible = true;
+                    }
+                    else
+                    {
+                        fila.Visible = false;
+                    }
+                }
+            }
+        }
+
+        private void btnLimpiarFiltro_Click(object sender, EventArgs e)
+        {
+            dtpBuscarDesde.Value = DateTime.Now;
+            dtpBuscarHasta.Value = DateTime.Now;
+
+            dgvKardex.CurrentCell = null;
+
+            foreach (DataGridViewRow fila in dgvKardex.Rows)
+            {
+                if (!fila.IsNewRow)
+                {
+                    fila.Visible = true;
+                }
+            }
+        }
+
+        private void agregarToolStripMenuItem2_Click(object sender, EventArgs e)
+        {
+            FrmGestionEstante frm = new FrmGestionEstante();
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                CargarEstantes();
+            }
+        }
+
+        private void editarToolStripMenuItem2_Click(object sender, EventArgs e)
+        {
+            if (cmbEstantes.SelectedValue == null)
+            {
+                MessageBox.Show("Selecciona primero en el desplegable el estante que deseas editar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            FrmGestionEstante frm = new FrmGestionEstante();
+            frm.IdEstante = (long)cmbEstantes.SelectedValue;
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                CargarEstantes();
+            }
+        }
+
+        private void eliminarToolStripMenuItem2_Click(object sender, EventArgs e)
+        {
+            if (cmbEstantes.SelectedValue == null || !(cmbEstantes.SelectedValue is long idEstante)) return;
+
+            DialogResult confirmacion = MessageBox.Show($"¿Estás seguro de que deseas eliminar el {cmbEstantes.Text}?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (confirmacion == DialogResult.Yes)
+            {
+                using (var conexion = new SqliteConnection(cadenaConexion))
+                {
+                    conexion.Open();
+                    var cmdCheck = new SqliteCommand("SELECT COUNT(*) FROM Articulos WHERE IdEstante = @IdEstante", conexion);
+                    cmdCheck.Parameters.AddWithValue("@IdEstante", idEstante);
+
+                    if ((long)cmdCheck.ExecuteScalar() > 0)
+                    {
+                        MessageBox.Show("No puedes eliminar este estante porque tiene medicamentos adentro.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    var cmdDelete = new SqliteCommand("DELETE FROM Estantes WHERE Id = @IdEstante", conexion);
+                    cmdDelete.Parameters.AddWithValue("@IdEstante", idEstante);
+                    cmdDelete.ExecuteNonQuery();
+                }
+                MessageBox.Show("Estante eliminado.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CargarEstantes();
+            }
+        }
+
+        private void agregarToolStripMenuItem3_Click(object sender, EventArgs e)
+        {
+            if (cmbEstantes.SelectedValue == null) return;
+
+            FrmNuevoArticulo frm = new FrmNuevoArticulo();
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                CargarArticulosPorEstante((long)cmbEstantes.SelectedValue);
+            }
+        }
+
+        private void editarToolStripMenuItem3_Click(object sender, EventArgs e)
+        {
+            if (cmbArticulos.SelectedValue == null || string.IsNullOrEmpty(txtCodigoSeleccionado.Text))
+            {
+                MessageBox.Show("Selecciona primero el artículo que deseas editar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            FrmNuevoArticulo frm = new FrmNuevoArticulo();
+            // Le pasamos el código para que sepa que va a Editar y no a Crear
+            frm.CodigoParaEditar = txtCodigoSeleccionado.Text;
+
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                CargarArticulosPorEstante((long)cmbEstantes.SelectedValue);
+            }
+        }
+
+        private void eliminarToolStripMenuItem3_Click(object sender, EventArgs e)
+        {
+            if (cmbArticulos.SelectedValue == null || string.IsNullOrEmpty(txtCodigoSeleccionado.Text)) return;
+
+            string codigoArticulo = txtCodigoSeleccionado.Text;
+            long idEstante = (long)cmbEstantes.SelectedValue;
+
+            using (var conexion = new SqliteConnection(cadenaConexion))
+            {
+                conexion.Open();
+
+                // 1. Revisamos cuántos movimientos tiene
+                var cmdCheck = new SqliteCommand("SELECT COUNT(*) FROM Movimientos WHERE CodigoArticulo = @Codigo", conexion);
+                cmdCheck.Parameters.AddWithValue("@Codigo", codigoArticulo);
+                long cantidadMovimientos = (long)cmdCheck.ExecuteScalar();
+
+                if (cantidadMovimientos > 0)
+                {
+                    // 2. ADVERTENCIA SEVERA (Nota que el botón por defecto es el "No" por seguridad)
+                    DialogResult alertaMortal = MessageBox.Show(
+                        $"¡CUIDADO!\n\nEl artículo '{cmbArticulos.Text}' tiene {cantidadMovimientos} movimientos en el Kardex.\n\nSi continúas, SE BORRARÁ TODO SU HISTORIAL para siempre. Esto solo debe usarse para corregir pruebas o errores graves.\n\n¿Estás COMPLETAMENTE SEGURO de querer forzar la eliminación?",
+                        "Peligro de Pérdida de Datos",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning,
+                        MessageBoxDefaultButton.Button2); // Button2 hace que el "No" esté seleccionado por defecto
+
+                    if (alertaMortal != DialogResult.Yes) return; // Si dice que no, cancelamos todo
+
+                    // 3. Borrado en cascada: Primero matamos el historial
+                    var cmdDeleteMov = new SqliteCommand("DELETE FROM Movimientos WHERE CodigoArticulo = @Codigo", conexion);
+                    cmdDeleteMov.Parameters.AddWithValue("@Codigo", codigoArticulo);
+                    cmdDeleteMov.ExecuteNonQuery();
+                }
+                else
+                {
+                    // Confirmación suave si es un artículo limpio (sin movimientos)
+                    DialogResult confirmacion = MessageBox.Show($"¿Deseas eliminar el artículo '{cmbArticulos.Text}'?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (confirmacion != DialogResult.Yes) return;
+                }
+
+                // 4. Finalmente, eliminamos el artículo de la base de datos
+                var cmdDeleteArt = new SqliteCommand("DELETE FROM Articulos WHERE Codigo = @Codigo", conexion);
+                cmdDeleteArt.Parameters.AddWithValue("@Codigo", codigoArticulo);
+                cmdDeleteArt.ExecuteNonQuery();
+            }
+
+            MessageBox.Show("Artículo eliminado correctamente del sistema.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            CargarArticulosPorEstante(idEstante); // Recargamos la interfaz
+        }
+
+        private void descargarPlantillaExcelToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog dialog = new SaveFileDialog();
+            dialog.Filter = "Archivo de Excel|*.xlsx";
+            dialog.Title = "Descargar Plantilla de Kardex Triple";
+            dialog.FileName = "Plantilla_Kardex_Triple.xlsx";
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    using (var workbook = new XLWorkbook())
+                    {
+                        var ws = workbook.Worksheets.Add("Plantilla");
+
+                        // --- CONFIGURACIÓN DE IMPRESIÓN ---
+                        ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+                        ws.PageSetup.PaperSize = XLPaperSize.LetterPaper;
+                        ws.PageSetup.Margins.SetTop(0.5);
+                        ws.PageSetup.Margins.SetBottom(0.5);
+                        ws.PageSetup.Margins.SetLeft(0.25);
+                        ws.PageSetup.Margins.SetRight(0.25);
+                        ws.PageSetup.FitToPages(1, 1);
+
+                        // Dibujamos 3 tarjetas vacías (i = 0, 1, 2)
+                        for (int i = 0; i < 3; i++)
+                        {
+                            int c = (i * 7) + 1; // Columnas: 1, 8 y 15
+
+                            // 1. LOGO Y ENCABEZADO
+                            string rutaLogo = "logo.jpeg";
+                            if (System.IO.File.Exists(rutaLogo))
+                            {
+                                ws.AddPicture(rutaLogo).MoveTo(ws.Cell(1, c)).WithSize(60, 60);
+                            }
+
+                            ws.Cell(1, c + 1).Value = "HOSPITAL ADVENTISTA DE VENEZUELA";
+                            ws.Cell(2, c + 1).Value = "RIF J-08517758-2";
+                            ws.Cell(3, c + 1).Value = "CARDEX";
+                            ws.Range(1, c + 1, 3, c + 3).Style.Font.Bold = true;
+                            ws.Range(1, c + 1, 3, c + 3).Style.Font.FontSize = 10;
+
+                            // Código en la Fila 3, Columna c+5 (F3, M3, T3)
+                            ws.Cell(3, c + 4).Value = "Código:";
+                            ws.Cell(3, c + 4).Style.Font.Bold = true;
+                            ws.Cell(3, c + 5).Value = "[Código]";
+                            ws.Cell(3, c + 5).Style.Font.FontColor = XLColor.Blue;
+                            ws.Cell(3, c + 5).Style.Font.Bold = true;
+
+                            // 2. BLOQUE DE DATOS
+                            ws.Cell(4, c).Value = "NOMBRE DEL MEDICAMENTO";
+                            ws.Cell(5, c).Value = "CONCENTRACIÓN";
+                            ws.Cell(6, c).Value = "PRESENTACIÓN (JARABE, AMPOLLAS, TABLETAS)";
+                            ws.Cell(7, c).Value = "MÁXIMA CANTIDAD A PEDIR";
+                            ws.Cell(8, c).Value = "SI PIDE MÁS SE VENCERÁ";
+                            ws.Cell(9, c).Value = "MÍNIMA CANTIDAD A TENER";
+
+                            // Guías para el usuario
+                            ws.Cell(4, c + 3).Value = "[Nombre]";
+                            ws.Cell(5, c + 3).Value = "[Concentración]";
+                            ws.Cell(6, c + 3).Value = "[Presentación]";
+                            ws.Cell(7, c + 3).Value = "0";
+                            ws.Cell(8, c + 3).Value = "[Vencimiento]";
+                            ws.Cell(9, c + 3).Value = "0";
+                            ws.Range(4, c + 3, 9, c + 3).Style.Font.Italic = true;
+                            ws.Range(4, c + 3, 9, c + 3).Style.Font.FontColor = XLColor.Gray;
+
+                            var bloqueDatos = ws.Range(4, c, 9, c + 5);
+                            bloqueDatos.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                            bloqueDatos.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                            ws.Range(4, c, 9, c).Style.Font.FontSize = 9;
+
+                            for (int j = 4; j <= 9; j++)
+                            {
+                                ws.Range(j, c, j, c + 2).Merge();
+                                ws.Range(j, c + 3, j, c + 5).Merge();
+                            }
+
+                            // 3. TABLA DE MOVIMIENTOS
+                            int filaHeader = 11;
+                            ws.Cell(filaHeader, c).Value = "FECHA";
+                            ws.Cell(filaHeader, c + 1).Value = "DOCUMENTO";
+                            ws.Cell(filaHeader, c + 2).Value = "ENTRADA";
+                            ws.Cell(filaHeader, c + 3).Value = "SALIDA";
+                            ws.Cell(filaHeader, c + 4).Value = "EXISTENCIA";
+                            ws.Cell(filaHeader, c + 5).Value = "OBSERVACIONES";
+
+                            var rangoHeaders = ws.Range(filaHeader, c, filaHeader, c + 5);
+                            rangoHeaders.Style.Font.Bold = true;
+                            rangoHeaders.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                            rangoHeaders.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                            rangoHeaders.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+                            // Dibujamos 15 filas vacías con guiones para que se vea como el físico
+                            for (int f = 12; f <= 26; f++)
+                            {
+                                ws.Cell(f, c + 2).Value = "-";
+                                ws.Cell(f, c + 3).Value = "-";
+                                ws.Range(f, c + 2, f, c + 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                            }
+
+                            var tablaMovimientos = ws.Range(11, c, 26, c + 5);
+                            tablaMovimientos.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                            tablaMovimientos.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+                            // Ajustamos anchos
+                            ws.Column(c).Width = 12;
+                            ws.Column(c + 1).Width = 15;
+                            ws.Column(c + 2).Width = 10;
+                            ws.Column(c + 3).Width = 10;
+                            ws.Column(c + 4).Width = 12;
+                            ws.Column(c + 5).Width = 25;
+                        }
+
+                        workbook.SaveAs(dialog.FileName);
+                        MessageBox.Show("Plantilla triple descargada con éxito.\nYa está configurada para imprimirse en una sola hoja horizontal.", "Ayuda", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al generar la plantilla: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void importarCargaMasivaToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.Filter = "Archivos de Excel|*.xlsx";
+            dialog.Title = "Seleccionar Carga Masiva Multi-Estante";
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    using (var workbook = new XLWorkbook(dialog.FileName))
+                    {
+                        using (var conexion = new SqliteConnection(cadenaConexion))
+                        {
+                            conexion.Open();
+                            using (var transaccion = conexion.BeginTransaction())
+                            {
+                                int totalImportados = 0;
+                                string hojasIgnoradas = "";
+
+                                // El programa ahora revisa TODAS las hojas del Excel
+                                foreach (var worksheet in workbook.Worksheets)
+                                {
+                                    string nombreHoja = worksheet.Name.Trim();
+
+                                    // 1. Buscamos en la Base de Datos si existe un estante con el nombre de esta hoja
+                                    string queryEstante = "SELECT Id FROM Estantes WHERE Nombre = @NombreHoja";
+                                    long idEstanteDestino = -1;
+
+                                    using (var cmdEstante = new SqliteCommand(queryEstante, conexion, transaccion))
+                                    {
+                                        cmdEstante.Parameters.AddWithValue("@NombreHoja", nombreHoja);
+                                        object result = cmdEstante.ExecuteScalar(); // Devuelve el ID si lo encuentra
+
+                                        if (result != null)
+                                        {
+                                            idEstanteDestino = (long)result;
+                                        }
+                                    }
+
+                                    // 2. Si no encontró un estante que se llame igual, anota la hoja y la salta
+                                    if (idEstanteDestino == -1)
+                                    {
+                                        hojasIgnoradas += $"• {nombreHoja}\n";
+                                        continue;
+                                    }
+
+                                    // 3. Si el estante existe, procedemos a importar sus artículos
+                                    // Empezamos en la FILA 2, porque la FILA 1 tiene los encabezados azules de la plantilla
+                                    int fila = 2;
+
+                                    while (!worksheet.Cell(fila, 1).IsEmpty() || !worksheet.Cell(fila, 2).IsEmpty())
+                                    {
+                                        string nombre = worksheet.Cell(fila, 1).GetString().Trim();
+                                        string codigo = worksheet.Cell(fila, 2).GetString().Trim();
+                                        string presentacion = worksheet.Cell(fila, 3).GetString().Trim();
+
+                                        if (string.IsNullOrEmpty(codigo)) { fila++; continue; }
+
+                                        // Verificamos si ya existe el código
+                                        string queryExiste = "SELECT COUNT(*) FROM Articulos WHERE Codigo = @cod";
+                                        using (var cmdCheck = new SqliteCommand(queryExiste, conexion, transaccion))
+                                        {
+                                            cmdCheck.Parameters.AddWithValue("@cod", codigo);
+                                            long existe = (long)cmdCheck.ExecuteScalar();
+
+                                            string queryFinal;
+                                            if (existe == 0)
+                                            {
+                                                queryFinal = @"INSERT INTO Articulos 
+                                            (Codigo, Nombre, Presentacion, IdEstante, Concentracion, MaximaCantidad, PideMasVencera, MinimaCantidad) 
+                                            VALUES (@cod, @nom, @pre, @est, '', 0, '', 0)";
+                                            }
+                                            else
+                                            {
+                                                queryFinal = @"UPDATE Articulos 
+                                            SET Nombre = @nom, Presentacion = @pre, IdEstante = @est 
+                                            WHERE Codigo = @cod";
+                                            }
+
+                                            using (var cmdAccion = new SqliteCommand(queryFinal, conexion, transaccion))
+                                            {
+                                                cmdAccion.Parameters.AddWithValue("@cod", codigo);
+                                                cmdAccion.Parameters.AddWithValue("@nom", string.IsNullOrEmpty(nombre) ? "Sin Nombre" : nombre);
+                                                cmdAccion.Parameters.AddWithValue("@pre", presentacion);
+                                                cmdAccion.Parameters.AddWithValue("@est", idEstanteDestino); // ¡Se va al estante correcto automáticamente!
+                                                cmdAccion.ExecuteNonQuery();
+                                            }
+                                        }
+                                        fila++;
+                                        totalImportados++;
+                                    }
+                                }
+                                transaccion.Commit();
+
+                                // ==========================================
+                                // REPORTE FINAL PARA EL USUARIO
+                                // ==========================================
+                                string mensajeFinal = $"¡Carga Inteligente completada!\nArtículos procesados y guardados: {totalImportados}.";
+
+                                if (!string.IsNullOrEmpty(hojasIgnoradas))
+                                {
+                                    mensajeFinal += $"\n\nOJO: Las siguientes pestañas fueron ignoradas porque no coinciden con ningún estante creado en el sistema:\n{hojasIgnoradas}\n(Revisa la ortografía de la pestaña o crea el estante primero).";
+                                }
+
+                                MessageBox.Show(mensajeFinal, "Resumen de Carga", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                        }
+
+                        // Recargamos la interfaz para mostrar los cambios en el estante que tengamos seleccionado en pantalla
+                        if (cmbEstantes.SelectedValue != null && cmbEstantes.SelectedValue is long idActual)
+                        {
+                            CargarArticulosPorEstante(idActual);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al procesar la carga masiva: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void descargarPlantillaCargaMasivaToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog dialog = new SaveFileDialog();
+            dialog.Filter = "Archivo de Excel|*.xlsx";
+            dialog.Title = "Descargar Plantilla para Carga Masiva";
+            dialog.FileName = "Plantilla_Carga_Masiva.xlsx";
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    using (var workbook = new XLWorkbook())
+                    {
+                        // Creamos una hoja sencilla
+                        var ws = workbook.Worksheets.Add("Carga Masiva");
+
+                        // ==========================================
+                        // 1. ENCABEZADOS (Fila 1)
+                        // ==========================================
+                        ws.Cell("A1").Value = "NOMBRE DEL ARTÍCULO";
+                        ws.Cell("B1").Value = "CÓDIGO (Obligatorio)";
+                        ws.Cell("C1").Value = "PRESENTACIÓN";
+
+                        // Le damos formato visual de "Tabla" a los encabezados
+                        var rangoHeaders = ws.Range("A1:C1");
+                        rangoHeaders.Style.Font.Bold = true;
+                        rangoHeaders.Style.Font.FontColor = XLColor.White;
+                        rangoHeaders.Style.Fill.BackgroundColor = XLColor.DarkBlue; // Un color institucional
+                        rangoHeaders.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        rangoHeaders.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                        rangoHeaders.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+                        // ==========================================
+                        // 2. TEXTOS DE EJEMPLO (Fila 2)
+                        // ==========================================
+                        ws.Cell("A2").Value = "[Ej: Sonda Levin 8]";
+                        ws.Cell("B2").Value = "[Ej: 02140306]";
+                        ws.Cell("C2").Value = "[Ej: Unidad / Caja x 100]";
+
+                        // Ponemos el ejemplo en gris cursiva para que sepan que deben borrarlo
+                        var rangoEjemplo = ws.Range("A2:C2");
+                        rangoEjemplo.Style.Font.Italic = true;
+                        rangoEjemplo.Style.Font.FontColor = XLColor.Gray;
+
+                        // ==========================================
+                        // 3. AJUSTE DE COLUMNAS
+                        // ==========================================
+                        // Hacemos las columnas suficientemente anchas para escribir cómodamente
+                        ws.Column(1).Width = 40; // Nombre
+                        ws.Column(2).Width = 25; // Código
+                        ws.Column(3).Width = 35; // Presentación
+
+                        workbook.SaveAs(dialog.FileName);
+                        MessageBox.Show("Plantilla de carga masiva descargada con éxito.\n\nEl personal puede llenarla borrando la fila de ejemplo y luego subirla desde el menú 'Artículos -> Importar Carga Masiva'.", "Plantilla Lista", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al generar la plantilla: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }

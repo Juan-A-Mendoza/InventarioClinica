@@ -26,6 +26,10 @@ namespace InventarioClinica
                         Codigo TEXT PRIMARY KEY,
                         Nombre TEXT NOT NULL,
                         Presentacion TEXT,
+                        Concentracion TEXT,
+                        MaximaCantidad INTEGER,
+                        PideMasVencera TEXT,
+                        MinimaCantidad INTEGER,
                         IdEstante INTEGER,
                         FOREIGN KEY(IdEstante) REFERENCES Estantes(Id)
                     );
