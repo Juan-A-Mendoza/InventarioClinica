@@ -35,7 +35,7 @@ namespace InventarioClinica
             {
                 conexion.Open();
                 // Pedimos el ID (para uso interno) y el Nombre (para mostrarlo)
-                string query = "SELECT Id, Nombre FROM Estantes";
+                string query = "SELECT Id, Nombre FROM Estantes ORDER BY LENGTH(Nombre) ASC, Nombre ASC";
 
                 using (var comando = new SqliteCommand(query, conexion))
                 {
@@ -674,30 +674,102 @@ namespace InventarioClinica
 
         private void eliminarToolStripMenuItem2_Click(object sender, EventArgs e)
         {
-            if (cmbEstantes.SelectedValue == null || !(cmbEstantes.SelectedValue is long idEstante)) return;
+            // 1. Verificar selección
+            if (cmbEstantes.SelectedValue == null) return;
 
-            DialogResult confirmacion = MessageBox.Show($"¿Estás seguro de que deseas eliminar el {cmbEstantes.Text}?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            long idEstante = (long)cmbEstantes.SelectedValue;
+            string nombreEstante = cmbEstantes.Text;
 
-            if (confirmacion == DialogResult.Yes)
+            using (var conexion = new SqliteConnection(cadenaConexion))
             {
-                using (var conexion = new SqliteConnection(cadenaConexion))
+                conexion.Open();
+
+                // 2. Contar qué hay dentro para la advertencia
+                long totalArticulos = 0;
+                long totalMovimientos = 0;
+
+                string queryContar = @"
+            SELECT COUNT(DISTINCT a.Codigo), COUNT(m.Id)
+            FROM Articulos a
+            LEFT JOIN Movimientos m ON a.Codigo = m.CodigoArticulo
+            WHERE a.IdEstante = @id";
+
+                using (var cmdCount = new SqliteCommand(queryContar, conexion))
                 {
-                    conexion.Open();
-                    var cmdCheck = new SqliteCommand("SELECT COUNT(*) FROM Articulos WHERE IdEstante = @IdEstante", conexion);
-                    cmdCheck.Parameters.AddWithValue("@IdEstante", idEstante);
-
-                    if ((long)cmdCheck.ExecuteScalar() > 0)
+                    cmdCount.Parameters.AddWithValue("@id", idEstante);
+                    using (var reader = cmdCount.ExecuteReader())
                     {
-                        MessageBox.Show("No puedes eliminar este estante porque tiene medicamentos adentro.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
+                        if (reader.Read())
+                        {
+                            totalArticulos = reader.IsDBNull(0) ? 0 : reader.GetInt64(0);
+                            totalMovimientos = reader.IsDBNull(1) ? 0 : reader.GetInt64(1);
+                        }
                     }
-
-                    var cmdDelete = new SqliteCommand("DELETE FROM Estantes WHERE Id = @IdEstante", conexion);
-                    cmdDelete.Parameters.AddWithValue("@IdEstante", idEstante);
-                    cmdDelete.ExecuteNonQuery();
                 }
-                MessageBox.Show("Estante eliminado.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                CargarEstantes();
+
+                // 3. Mostrar advertencia si tiene contenido
+                if (totalArticulos > 0)
+                {
+                    string aviso = $"¡ADVERTENCIA DE ELIMINACIÓN MASIVA!\n\n" +
+                                   $"El estante '{nombreEstante}' contiene:\n" +
+                                   $"• {totalArticulos} artículos registrados.\n" +
+                                   $"• {totalMovimientos} movimientos en el historial.\n\n" +
+                                   $"Si procedes, TODO esto se borrará permanentemente.\n\n" +
+                                   $"¿Estás ABSOLUTAMENTE seguro de eliminar el estante y su contenido?";
+
+                    DialogResult resultado = MessageBox.Show(aviso, "Peligro: Pérdida de datos",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Stop, MessageBoxDefaultButton.Button2);
+
+                    if (resultado != DialogResult.Yes) return;
+                }
+                else
+                {
+                    // Confirmación simple si está vacío
+                    if (MessageBox.Show($"¿Eliminar el estante vacío '{nombreEstante}'?", "Confirmar",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+                }
+
+                // 4. Ejecutar el borrado usando una Transacción (para que sea todo o nada)
+                using (var transaccion = conexion.BeginTransaction())
+                {
+                    try
+                    {
+                        // Paso A: Borrar movimientos de los artículos que pertenecen a este estante
+                        string delMov = @"DELETE FROM Movimientos 
+                                 WHERE CodigoArticulo IN (SELECT Codigo FROM Articulos WHERE IdEstante = @id)";
+                        using (var cmd = new SqliteCommand(delMov, conexion, transaccion))
+                        {
+                            cmd.Parameters.AddWithValue("@id", idEstante);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        // Paso B: Borrar los artículos del estante
+                        string delArt = "DELETE FROM Articulos WHERE IdEstante = @id";
+                        using (var cmd = new SqliteCommand(delArt, conexion, transaccion))
+                        {
+                            cmd.Parameters.AddWithValue("@id", idEstante);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        // Paso C: Borrar el estante
+                        string delEst = "DELETE FROM Estantes WHERE Id = @id";
+                        using (var cmd = new SqliteCommand(delEst, conexion, transaccion))
+                        {
+                            cmd.Parameters.AddWithValue("@id", idEstante);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        transaccion.Commit();
+                        MessageBox.Show("Estante y contenido eliminados con éxito.", "Operación Completada");
+
+                        CargarEstantes(); // Refresca tu ListBox o ComboBox
+                    }
+                    catch (Exception ex)
+                    {
+                        transaccion.Rollback();
+                        MessageBox.Show("Error al eliminar: " + ex.Message, "Error Crítico");
+                    }
+                }
             }
         }
 
