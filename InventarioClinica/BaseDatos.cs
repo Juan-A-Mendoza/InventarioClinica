@@ -43,6 +43,9 @@ namespace InventarioClinica
                         Salida INTEGER,
                         Existencia INTEGER NOT NULL,
                         Observaciones TEXT,
+                        Lote TEXT,
+                        FechaCompra TEXT,
+                        FechaVencimiento TEXT,                      
                         FOREIGN KEY(CodigoArticulo) REFERENCES Articulos(Codigo)
                     );";
 

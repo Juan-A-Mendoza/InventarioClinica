@@ -60,6 +60,9 @@
             this.Column7 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column8 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column9 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column10 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column11 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column12 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.label8 = new System.Windows.Forms.Label();
             this.txtCodigoSeleccionado = new System.Windows.Forms.TextBox();
             this.btnExportarExcel = new System.Windows.Forms.Button();
@@ -80,12 +83,20 @@
             this.agregarToolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
             this.editarToolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
             this.eliminarToolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
+            this.importarCargaMasivaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ayudaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.descargarPlantillaExcelToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.descargarPlantillaCargaMasivaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.txtPresentacionSeleccionada = new System.Windows.Forms.TextBox();
             this.label12 = new System.Windows.Forms.Label();
-            this.importarCargaMasivaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.descargarPlantillaCargaMasivaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.label13 = new System.Windows.Forms.Label();
+            this.txtLote = new System.Windows.Forms.TextBox();
+            this.label14 = new System.Windows.Forms.Label();
+            this.dtpFechaCompra = new System.Windows.Forms.DateTimePicker();
+            this.label15 = new System.Windows.Forms.Label();
+            this.dtpFechaVencimiento = new System.Windows.Forms.DateTimePicker();
+            this.reportesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.descargarInventarioGlobalToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.numCantidad)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dgvKardex)).BeginInit();
             this.Menu.SuspendLayout();
@@ -165,6 +176,7 @@
             this.rbEntrada.TabStop = true;
             this.rbEntrada.Text = "Entrada";
             this.rbEntrada.UseVisualStyleBackColor = true;
+            this.rbEntrada.CheckedChanged += new System.EventHandler(this.rbEntrada_CheckedChanged);
             // 
             // rbSalida
             // 
@@ -266,7 +278,7 @@
             this.btnRegistrar.AutoSize = true;
             this.btnRegistrar.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.btnRegistrar.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnRegistrar.Location = new System.Drawing.Point(420, 178);
+            this.btnRegistrar.Location = new System.Drawing.Point(485, 291);
             this.btnRegistrar.Name = "btnRegistrar";
             this.btnRegistrar.Size = new System.Drawing.Size(173, 29);
             this.btnRegistrar.TabIndex = 9;
@@ -302,7 +314,10 @@
             this.Column6,
             this.Column7,
             this.Column8,
-            this.Column9});
+            this.Column9,
+            this.Column10,
+            this.Column11,
+            this.Column12});
             this.dgvKardex.Cursor = System.Windows.Forms.Cursors.IBeam;
             dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle4.BackColor = System.Drawing.SystemColors.Window;
@@ -318,7 +333,7 @@
             dataGridViewCellStyle5.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.dgvKardex.RowsDefaultCellStyle = dataGridViewCellStyle5;
             this.dgvKardex.RowTemplate.DefaultCellStyle.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.dgvKardex.Size = new System.Drawing.Size(1083, 446);
+            this.dgvKardex.Size = new System.Drawing.Size(1247, 446);
             this.dgvKardex.TabIndex = 10;
             // 
             // Column1
@@ -357,7 +372,7 @@
             // Column5
             // 
             this.Column5.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.Column5.HeaderText = "Documento";
+            this.Column5.HeaderText = "Documento / N° Ref";
             this.Column5.Name = "Column5";
             this.Column5.ReadOnly = true;
             // 
@@ -388,6 +403,27 @@
             this.Column9.HeaderText = "Observaciones";
             this.Column9.Name = "Column9";
             this.Column9.ReadOnly = true;
+            // 
+            // Column10
+            // 
+            this.Column10.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.Column10.HeaderText = "Lote";
+            this.Column10.Name = "Column10";
+            this.Column10.ReadOnly = true;
+            // 
+            // Column11
+            // 
+            this.Column11.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.Column11.HeaderText = "Fecha de Compra";
+            this.Column11.Name = "Column11";
+            this.Column11.ReadOnly = true;
+            // 
+            // Column12
+            // 
+            this.Column12.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.Column12.HeaderText = "Vencimiento";
+            this.Column12.Name = "Column12";
+            this.Column12.ReadOnly = true;
             // 
             // label8
             // 
@@ -533,10 +569,11 @@
             this.Menu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.estanteToolStripMenuItem,
             this.artículoToolStripMenuItem,
-            this.ayudaToolStripMenuItem});
+            this.ayudaToolStripMenuItem,
+            this.reportesToolStripMenuItem});
             this.Menu.Location = new System.Drawing.Point(0, 0);
             this.Menu.Name = "Menu";
-            this.Menu.Size = new System.Drawing.Size(1126, 24);
+            this.Menu.Size = new System.Drawing.Size(1290, 24);
             this.Menu.TabIndex = 24;
             this.Menu.Text = "menuStrip1";
             // 
@@ -603,6 +640,13 @@
             this.eliminarToolStripMenuItem3.Text = "Eliminar";
             this.eliminarToolStripMenuItem3.Click += new System.EventHandler(this.eliminarToolStripMenuItem3_Click);
             // 
+            // importarCargaMasivaToolStripMenuItem
+            // 
+            this.importarCargaMasivaToolStripMenuItem.Name = "importarCargaMasivaToolStripMenuItem";
+            this.importarCargaMasivaToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
+            this.importarCargaMasivaToolStripMenuItem.Text = "Importar Carga Masiva";
+            this.importarCargaMasivaToolStripMenuItem.Click += new System.EventHandler(this.importarCargaMasivaToolStripMenuItem_Click);
+            // 
             // ayudaToolStripMenuItem
             // 
             this.ayudaToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -618,6 +662,13 @@
             this.descargarPlantillaExcelToolStripMenuItem.Size = new System.Drawing.Size(245, 22);
             this.descargarPlantillaExcelToolStripMenuItem.Text = "Descargar Plantilla Excel";
             this.descargarPlantillaExcelToolStripMenuItem.Click += new System.EventHandler(this.descargarPlantillaExcelToolStripMenuItem_Click);
+            // 
+            // descargarPlantillaCargaMasivaToolStripMenuItem
+            // 
+            this.descargarPlantillaCargaMasivaToolStripMenuItem.Name = "descargarPlantillaCargaMasivaToolStripMenuItem";
+            this.descargarPlantillaCargaMasivaToolStripMenuItem.Size = new System.Drawing.Size(245, 22);
+            this.descargarPlantillaCargaMasivaToolStripMenuItem.Text = "Descargar Plantilla Carga Masiva";
+            this.descargarPlantillaCargaMasivaToolStripMenuItem.Click += new System.EventHandler(this.descargarPlantillaCargaMasivaToolStripMenuItem_Click);
             // 
             // txtPresentacionSeleccionada
             // 
@@ -639,19 +690,93 @@
             this.label12.TabIndex = 25;
             this.label12.Text = "Presentación";
             // 
-            // importarCargaMasivaToolStripMenuItem
+            // label13
             // 
-            this.importarCargaMasivaToolStripMenuItem.Name = "importarCargaMasivaToolStripMenuItem";
-            this.importarCargaMasivaToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
-            this.importarCargaMasivaToolStripMenuItem.Text = "Importar Carga Masiva";
-            this.importarCargaMasivaToolStripMenuItem.Click += new System.EventHandler(this.importarCargaMasivaToolStripMenuItem_Click);
+            this.label13.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.label13.AutoSize = true;
+            this.label13.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.label13.Font = new System.Drawing.Font("Lucida Bright", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label13.Location = new System.Drawing.Point(463, 212);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(45, 18);
+            this.label13.TabIndex = 27;
+            this.label13.Text = "Lote";
             // 
-            // descargarPlantillaCargaMasivaToolStripMenuItem
+            // txtLote
             // 
-            this.descargarPlantillaCargaMasivaToolStripMenuItem.Name = "descargarPlantillaCargaMasivaToolStripMenuItem";
-            this.descargarPlantillaCargaMasivaToolStripMenuItem.Size = new System.Drawing.Size(245, 22);
-            this.descargarPlantillaCargaMasivaToolStripMenuItem.Text = "Descargar Plantilla Carga Masiva";
-            this.descargarPlantillaCargaMasivaToolStripMenuItem.Click += new System.EventHandler(this.descargarPlantillaCargaMasivaToolStripMenuItem_Click);
+            this.txtLote.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtLote.Location = new System.Drawing.Point(466, 237);
+            this.txtLote.Name = "txtLote";
+            this.txtLote.Size = new System.Drawing.Size(121, 26);
+            this.txtLote.TabIndex = 28;
+            // 
+            // label14
+            // 
+            this.label14.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.label14.AutoSize = true;
+            this.label14.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.label14.Font = new System.Drawing.Font("Lucida Bright", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label14.Location = new System.Drawing.Point(641, 212);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(123, 18);
+            this.label14.TabIndex = 29;
+            this.label14.Text = "Fecha Compra";
+            // 
+            // dtpFechaCompra
+            // 
+            this.dtpFechaCompra.CalendarFont = new System.Drawing.Font("Imprint MT Shadow", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.dtpFechaCompra.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.dtpFechaCompra.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.dtpFechaCompra.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+            this.dtpFechaCompra.Location = new System.Drawing.Point(642, 239);
+            this.dtpFechaCompra.Name = "dtpFechaCompra";
+            this.dtpFechaCompra.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.dtpFechaCompra.Size = new System.Drawing.Size(122, 26);
+            this.dtpFechaCompra.TabIndex = 30;
+            this.dtpFechaCompra.Value = new System.DateTime(2026, 1, 1, 0, 0, 0, 0);
+            // 
+            // label15
+            // 
+            this.label15.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.label15.AutoSize = true;
+            this.label15.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.label15.Font = new System.Drawing.Font("Lucida Bright", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label15.Location = new System.Drawing.Point(830, 212);
+            this.label15.Name = "label15";
+            this.label15.Size = new System.Drawing.Size(158, 18);
+            this.label15.TabIndex = 31;
+            this.label15.Text = "Fecha Vencimiento";
+            // 
+            // dtpFechaVencimiento
+            // 
+            this.dtpFechaVencimiento.CalendarFont = new System.Drawing.Font("Imprint MT Shadow", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.dtpFechaVencimiento.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.dtpFechaVencimiento.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.dtpFechaVencimiento.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+            this.dtpFechaVencimiento.Location = new System.Drawing.Point(833, 239);
+            this.dtpFechaVencimiento.Name = "dtpFechaVencimiento";
+            this.dtpFechaVencimiento.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.dtpFechaVencimiento.Size = new System.Drawing.Size(122, 26);
+            this.dtpFechaVencimiento.TabIndex = 32;
+            this.dtpFechaVencimiento.Value = new System.DateTime(2026, 1, 1, 0, 0, 0, 0);
+            // 
+            // reportesToolStripMenuItem
+            // 
+            this.reportesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.descargarInventarioGlobalToolStripMenuItem});
+            this.reportesToolStripMenuItem.Name = "reportesToolStripMenuItem";
+            this.reportesToolStripMenuItem.Size = new System.Drawing.Size(65, 20);
+            this.reportesToolStripMenuItem.Text = "Reportes";
+            // 
+            // descargarInventarioGlobalToolStripMenuItem
+            // 
+            this.descargarInventarioGlobalToolStripMenuItem.Name = "descargarInventarioGlobalToolStripMenuItem";
+            this.descargarInventarioGlobalToolStripMenuItem.Size = new System.Drawing.Size(219, 22);
+            this.descargarInventarioGlobalToolStripMenuItem.Text = "Descargar Inventario Global";
+            this.descargarInventarioGlobalToolStripMenuItem.Click += new System.EventHandler(this.descargarInventarioGlobalToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -660,7 +785,13 @@
             this.AutoSize = true;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.BackColor = System.Drawing.SystemColors.Control;
-            this.ClientSize = new System.Drawing.Size(1126, 870);
+            this.ClientSize = new System.Drawing.Size(1290, 870);
+            this.Controls.Add(this.dtpFechaVencimiento);
+            this.Controls.Add(this.label15);
+            this.Controls.Add(this.dtpFechaCompra);
+            this.Controls.Add(this.label14);
+            this.Controls.Add(this.txtLote);
+            this.Controls.Add(this.label13);
             this.Controls.Add(this.txtPresentacionSeleccionada);
             this.Controls.Add(this.label12);
             this.Controls.Add(this.Menu);
@@ -738,15 +869,6 @@
         private System.Windows.Forms.DateTimePicker dtpBuscarHasta;
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.Label label11;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column1;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column2;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column3;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column4;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column5;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column6;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column7;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column8;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column9;
         private System.Windows.Forms.MenuStrip Menu;
         private System.Windows.Forms.ToolStripMenuItem estanteToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem agregarToolStripMenuItem2;
@@ -762,6 +884,26 @@
         private System.Windows.Forms.ToolStripMenuItem descargarPlantillaExcelToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem importarCargaMasivaToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem descargarPlantillaCargaMasivaToolStripMenuItem;
+        private System.Windows.Forms.Label label13;
+        private System.Windows.Forms.TextBox txtLote;
+        private System.Windows.Forms.Label label14;
+        private System.Windows.Forms.DateTimePicker dtpFechaCompra;
+        private System.Windows.Forms.Label label15;
+        private System.Windows.Forms.DateTimePicker dtpFechaVencimiento;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column1;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column2;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column3;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column4;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column5;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column6;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column7;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column8;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column9;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column10;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column11;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column12;
+        private System.Windows.Forms.ToolStripMenuItem reportesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem descargarInventarioGlobalToolStripMenuItem;
     }
 }
 

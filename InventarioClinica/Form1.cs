@@ -166,24 +166,39 @@ namespace InventarioClinica
                     return;
                 }
 
-                // 4. Guardar el movimiento en la Base de Datos
-                string queryInsert = @"INSERT INTO Movimientos
-                             (CodigoArticulo, Fecha, Documento, Entrada, Salida, Existencia, Observaciones)
-                             VALUES (@Codigo, @Fecha, @Documento, @Entrada, @Salida, @Existencia, @Observaciones)";
+                            string queryInsertar = @"INSERT INTO Movimientos 
+                (CodigoArticulo, Fecha, Documento, Entrada, Salida, Existencia, Observaciones, Lote, FechaCompra, FechaVencimiento) 
+                VALUES (@Codigo, @Fecha, @Documento, @Entrada, @Salida, @Existencia, @Observaciones, @Lote, @FechaCompra, @FechaVencimiento)";
 
-                using (var comandoInsert = new SqliteCommand(queryInsert, conexion))
+                // ERROR CORREGIDO: Le quitamos la palabra ", transaccion" al final
+                using (var cmdMov = new SqliteCommand(queryInsertar, conexion))
                 {
-                    comandoInsert.Parameters.AddWithValue("@Codigo", codigoArticulo);
-                    comandoInsert.Parameters.AddWithValue("@Fecha", fecha);
-                    comandoInsert.Parameters.AddWithValue("@Documento", string.IsNullOrWhiteSpace(documento) ? (object)DBNull.Value : documento);
+                    cmdMov.Parameters.AddWithValue("@Codigo", codigoArticulo);
+                    cmdMov.Parameters.AddWithValue("@Fecha", dtpFecha.Value.ToString("dd/MM/yyyy"));
+                    cmdMov.Parameters.AddWithValue("@Documento", string.IsNullOrWhiteSpace(txtDocumento.Text) ? (object)DBNull.Value : txtDocumento.Text);
 
-                    // Si es entrada, guardamos el número. Si no, guardamos "Nulo" para que luego se dibuje como un guion (-)
-                    comandoInsert.Parameters.AddWithValue("@Entrada", rbEntrada.Checked ? cantidad : (object)DBNull.Value);
-                    comandoInsert.Parameters.AddWithValue("@Salida", rbSalida.Checked ? cantidad : (object)DBNull.Value);
-                    comandoInsert.Parameters.AddWithValue("@Existencia", nuevaExistencia);
-                    comandoInsert.Parameters.AddWithValue("@Observaciones", string.IsNullOrWhiteSpace(observaciones) ? (object)DBNull.Value : observaciones);
+                    // ERROR CORREGIDO: Usamos rbEntrada.Checked en lugar de esEntrada
+                    cmdMov.Parameters.AddWithValue("@Entrada", rbEntrada.Checked ? (object)cantidad : DBNull.Value);
+                    cmdMov.Parameters.AddWithValue("@Salida", rbSalida.Checked ? (object)cantidad : DBNull.Value);
+                    cmdMov.Parameters.AddWithValue("@Existencia", nuevaExistencia);
+                    cmdMov.Parameters.AddWithValue("@Observaciones", string.IsNullOrWhiteSpace(txtObservaciones.Text) ? (object)DBNull.Value : txtObservaciones.Text);
 
-                    comandoInsert.ExecuteNonQuery();
+                    // NUEVOS PARÁMETROS (Solo se guardan si es Entrada)
+                    if (rbEntrada.Checked)
+                    {
+                        cmdMov.Parameters.AddWithValue("@Lote", string.IsNullOrWhiteSpace(txtLote.Text) ? (object)DBNull.Value : txtLote.Text);
+                        cmdMov.Parameters.AddWithValue("@FechaCompra", dtpFechaCompra.Value.ToString("dd/MM/yyyy"));
+                        cmdMov.Parameters.AddWithValue("@FechaVencimiento", dtpFechaVencimiento.Value.ToString("dd/MM/yyyy"));
+                    }
+                    else
+                    {
+                        // Si es salida, estos campos quedan vacíos (Nulos) en la base de datos
+                        cmdMov.Parameters.AddWithValue("@Lote", DBNull.Value);
+                        cmdMov.Parameters.AddWithValue("@FechaCompra", DBNull.Value);
+                        cmdMov.Parameters.AddWithValue("@FechaVencimiento", DBNull.Value);
+                    }
+
+                    cmdMov.ExecuteNonQuery();
                 }
             }
 
@@ -217,7 +232,10 @@ namespace InventarioClinica
                 m.Entrada, 
                 m.Salida, 
                 m.Existencia, 
-                m.Observaciones 
+                m.Observaciones,
+                m.Lote,
+                m.FechaCompra,
+                m.FechaVencimiento
             FROM Movimientos m
             INNER JOIN Articulos a ON m.CodigoArticulo = a.Codigo
             WHERE m.CodigoArticulo = @Codigo
@@ -236,6 +254,10 @@ namespace InventarioClinica
                             string observacionesFormato = reader["Observaciones"] != DBNull.Value ? reader["Observaciones"].ToString() : "";
                             string presentacionFormato = reader["Presentacion"] != DBNull.Value ? reader["Presentacion"].ToString() : "";
                             string documentoFormato = reader["Documento"] != DBNull.Value ? reader["Documento"].ToString() : "";
+                            //Lo nuevo segun la visita
+                            string loteFormato = reader["Lote"] != DBNull.Value ? reader["Lote"].ToString() : "-";
+                            string fCompraFormato = reader["FechaCompra"] != DBNull.Value ? reader["FechaCompra"].ToString() : "-";
+                            string fVencFormato = reader["FechaVencimiento"] != DBNull.Value ? reader["FechaVencimiento"].ToString() : "-";
 
                             // Agregamos la fila a tu DataGridView exactamente en el orden de tus columnas
                             dgvKardex.Rows.Add(
@@ -247,7 +269,10 @@ namespace InventarioClinica
                                 entradaFormato,
                                 salidaFormato,
                                 reader["Existencia"].ToString(),
-                                observacionesFormato
+                                observacionesFormato,
+                                loteFormato,
+                                fCompraFormato,
+                                fVencFormato
                             );
                         }
                     }
@@ -1162,6 +1187,128 @@ namespace InventarioClinica
                 }
             }
         }
+
+        private void rbEntrada_CheckedChanged(object sender, EventArgs e)
+        {
+            // Si marcan "Entrada", se habilitan. Si marcan "Salida", se bloquean.
+            bool esEntrada = rbEntrada.Checked;
+
+            txtLote.Enabled = esEntrada;
+            dtpFechaCompra.Enabled = esEntrada;
+            dtpFechaVencimiento.Enabled = esEntrada;
+
+            // Limpiar el lote si cambian a salida
+            if (!esEntrada) txtLote.Clear();
+        }
+
+        private void descargarInventarioGlobalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog dialog = new SaveFileDialog();
+            dialog.Filter = "Archivo de Excel|*.xlsx";
+            dialog.Title = "Descargar Reporte Global de Existencias";
+            dialog.FileName = $"Reporte_Inventario_{DateTime.Now:dd-MM-yyyy}.xlsx";
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    using (var workbook = new XLWorkbook())
+                    {
+                        var ws = workbook.Worksheets.Add("Stock Actual");
+
+                        // --- 1. ENCABEZADOS DEL REPORTE ---
+                        ws.Cell(1, 1).Value = "REPORTE GLOBAL DE EXISTENCIAS - HOSPITAL ADVENTISTA";
+                        ws.Range(1, 1, 1, 5).Merge().Style.Font.Bold = true;
+                        ws.Range(1, 1, 1, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        ws.Cell(1, 1).Style.Font.FontSize = 14;
+
+                        ws.Cell(3, 1).Value = "CÓDIGO";
+                        ws.Cell(3, 2).Value = "MEDICAMENTO / ARTÍCULO";
+                        ws.Cell(3, 3).Value = "PRESENTACIÓN";
+                        ws.Cell(3, 4).Value = "UBICACIÓN (ESTANTE)";
+                        ws.Cell(3, 5).Value = "EXISTENCIA ACTUAL";
+
+                        var rangoHeaders = ws.Range(3, 1, 3, 5);
+                        rangoHeaders.Style.Font.Bold = true;
+                        rangoHeaders.Style.Font.FontColor = XLColor.White;
+                        rangoHeaders.Style.Fill.BackgroundColor = XLColor.DarkSlateGray;
+                        rangoHeaders.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                        // --- 2. CONSULTA SQL MAESTRA ---
+                        using (var conexion = new SqliteConnection(cadenaConexion))
+                        {
+                            conexion.Open();
+                            string query = @"
+                        SELECT 
+                            a.Codigo, 
+                            a.Nombre, 
+                            a.Presentacion, 
+                            e.Nombre AS Estante,
+                            a.MinimaCantidad,
+                            (SELECT Existencia FROM Movimientos WHERE CodigoArticulo = a.Codigo ORDER BY Id DESC LIMIT 1) AS StockActual
+                        FROM Articulos a
+                        LEFT JOIN Estantes e ON a.IdEstante = e.Id
+                        ORDER BY e.Nombre ASC, a.Nombre ASC";
+
+                            using (var cmd = new SqliteCommand(query, conexion))
+                            {
+                                using (var reader = cmd.ExecuteReader())
+                                {
+                                    int fila = 4;
+                                    while (reader.Read())
+                                    {
+                                        ws.Cell(fila, 1).Value = "'" + reader["Codigo"].ToString();
+                                        ws.Cell(fila, 2).Value = reader["Nombre"].ToString();
+                                        ws.Cell(fila, 3).Value = reader["Presentacion"].ToString();
+                                        ws.Cell(fila, 4).Value = reader["Estante"].ToString();
+
+                                        // Si el artículo no tiene movimientos, el stock es 0
+                                        int stockActual = reader["StockActual"] != DBNull.Value ? Convert.ToInt32(reader["StockActual"]) : 0;
+                                        int stockMinimo = reader["MinimaCantidad"] != DBNull.Value ? Convert.ToInt32(reader["MinimaCantidad"]) : 0;
+
+                                        ws.Cell(fila, 5).Value = stockActual;
+                                        ws.Cell(fila, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                                        ws.Cell(fila, 5).Style.Font.Bold = true;
+
+                                        // --- 3. ALERTA VISUAL (STOCK CRÍTICO) ---
+                                        // Si el stock actual es menor o igual al mínimo permitido, pintamos la fila de rojo claro
+                                        if (stockActual <= stockMinimo)
+                                        {
+                                            ws.Range(fila, 1, fila, 5).Style.Fill.BackgroundColor = XLColor.LightPink;
+                                            ws.Cell(fila, 5).Style.Font.FontColor = XLColor.DarkRed;
+                                        }
+
+                                        fila++;
+                                    }
+
+                                    // Dibujamos los bordes de la tabla si hay datos
+                                    if (fila > 4)
+                                    {
+                                        ws.Range(3, 1, fila - 1, 5).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                                        ws.Range(3, 1, fila - 1, 5).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Ajustamos el ancho de las columnas
+                        ws.Column(1).Width = 15;
+                        ws.Column(2).Width = 40;
+                        ws.Column(3).Width = 25;
+                        ws.Column(4).Width = 20;
+                        ws.Column(5).Width = 20;
+
+                        workbook.SaveAs(dialog.FileName);
+                        MessageBox.Show("Reporte de Existencias exportado con éxito.\nLas filas en rojo indican los productos que necesitan ser reabastecidos.", "Reporte Listo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al generar el reporte: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
     }
-    //a
+    
+    
 }
