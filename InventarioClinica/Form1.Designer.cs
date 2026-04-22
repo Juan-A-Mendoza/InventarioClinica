@@ -74,7 +74,7 @@
             this.dtpBuscarHasta = new System.Windows.Forms.DateTimePicker();
             this.label10 = new System.Windows.Forms.Label();
             this.label11 = new System.Windows.Forms.Label();
-            this.Menu = new System.Windows.Forms.MenuStrip();
+            this.menuPrincipal = new System.Windows.Forms.MenuStrip();
             this.estanteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.agregarToolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
             this.editarToolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
@@ -87,6 +87,8 @@
             this.ayudaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.descargarPlantillaExcelToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.descargarPlantillaCargaMasivaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.reportesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.descargarInventarioGlobalToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.txtPresentacionSeleccionada = new System.Windows.Forms.TextBox();
             this.label12 = new System.Windows.Forms.Label();
             this.label13 = new System.Windows.Forms.Label();
@@ -95,11 +97,9 @@
             this.dtpFechaCompra = new System.Windows.Forms.DateTimePicker();
             this.label15 = new System.Windows.Forms.Label();
             this.dtpFechaVencimiento = new System.Windows.Forms.DateTimePicker();
-            this.reportesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.descargarInventarioGlobalToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.numCantidad)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dgvKardex)).BeginInit();
-            this.Menu.SuspendLayout();
+            this.menuPrincipal.SuspendLayout();
             this.SuspendLayout();
             // 
             // label1
@@ -564,18 +564,18 @@
             this.label11.TabIndex = 23;
             this.label11.Text = "Hasta";
             // 
-            // Menu
+            // menuPrincipal
             // 
-            this.Menu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.menuPrincipal.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.estanteToolStripMenuItem,
             this.artículoToolStripMenuItem,
             this.ayudaToolStripMenuItem,
             this.reportesToolStripMenuItem});
-            this.Menu.Location = new System.Drawing.Point(0, 0);
-            this.Menu.Name = "Menu";
-            this.Menu.Size = new System.Drawing.Size(1290, 24);
-            this.Menu.TabIndex = 24;
-            this.Menu.Text = "menuStrip1";
+            this.menuPrincipal.Location = new System.Drawing.Point(0, 0);
+            this.menuPrincipal.Name = "menuPrincipal";
+            this.menuPrincipal.Size = new System.Drawing.Size(1290, 24);
+            this.menuPrincipal.TabIndex = 24;
+            this.menuPrincipal.Text = "menuStrip1";
             // 
             // estanteToolStripMenuItem
             // 
@@ -590,21 +590,21 @@
             // agregarToolStripMenuItem2
             // 
             this.agregarToolStripMenuItem2.Name = "agregarToolStripMenuItem2";
-            this.agregarToolStripMenuItem2.Size = new System.Drawing.Size(117, 22);
+            this.agregarToolStripMenuItem2.Size = new System.Drawing.Size(180, 22);
             this.agregarToolStripMenuItem2.Text = "Agregar";
             this.agregarToolStripMenuItem2.Click += new System.EventHandler(this.agregarToolStripMenuItem2_Click);
             // 
             // editarToolStripMenuItem2
             // 
             this.editarToolStripMenuItem2.Name = "editarToolStripMenuItem2";
-            this.editarToolStripMenuItem2.Size = new System.Drawing.Size(117, 22);
+            this.editarToolStripMenuItem2.Size = new System.Drawing.Size(180, 22);
             this.editarToolStripMenuItem2.Text = "Editar";
             this.editarToolStripMenuItem2.Click += new System.EventHandler(this.editarToolStripMenuItem2_Click);
             // 
             // eliminarToolStripMenuItem2
             // 
             this.eliminarToolStripMenuItem2.Name = "eliminarToolStripMenuItem2";
-            this.eliminarToolStripMenuItem2.Size = new System.Drawing.Size(117, 22);
+            this.eliminarToolStripMenuItem2.Size = new System.Drawing.Size(180, 22);
             this.eliminarToolStripMenuItem2.Text = "Eliminar";
             this.eliminarToolStripMenuItem2.Click += new System.EventHandler(this.eliminarToolStripMenuItem2_Click);
             // 
@@ -669,6 +669,21 @@
             this.descargarPlantillaCargaMasivaToolStripMenuItem.Size = new System.Drawing.Size(245, 22);
             this.descargarPlantillaCargaMasivaToolStripMenuItem.Text = "Descargar Plantilla Carga Masiva";
             this.descargarPlantillaCargaMasivaToolStripMenuItem.Click += new System.EventHandler(this.descargarPlantillaCargaMasivaToolStripMenuItem_Click);
+            // 
+            // reportesToolStripMenuItem
+            // 
+            this.reportesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.descargarInventarioGlobalToolStripMenuItem});
+            this.reportesToolStripMenuItem.Name = "reportesToolStripMenuItem";
+            this.reportesToolStripMenuItem.Size = new System.Drawing.Size(65, 20);
+            this.reportesToolStripMenuItem.Text = "Reportes";
+            // 
+            // descargarInventarioGlobalToolStripMenuItem
+            // 
+            this.descargarInventarioGlobalToolStripMenuItem.Name = "descargarInventarioGlobalToolStripMenuItem";
+            this.descargarInventarioGlobalToolStripMenuItem.Size = new System.Drawing.Size(219, 22);
+            this.descargarInventarioGlobalToolStripMenuItem.Text = "Descargar Inventario Global";
+            this.descargarInventarioGlobalToolStripMenuItem.Click += new System.EventHandler(this.descargarInventarioGlobalToolStripMenuItem_Click);
             // 
             // txtPresentacionSeleccionada
             // 
@@ -763,21 +778,6 @@
             this.dtpFechaVencimiento.TabIndex = 32;
             this.dtpFechaVencimiento.Value = new System.DateTime(2026, 1, 1, 0, 0, 0, 0);
             // 
-            // reportesToolStripMenuItem
-            // 
-            this.reportesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.descargarInventarioGlobalToolStripMenuItem});
-            this.reportesToolStripMenuItem.Name = "reportesToolStripMenuItem";
-            this.reportesToolStripMenuItem.Size = new System.Drawing.Size(65, 20);
-            this.reportesToolStripMenuItem.Text = "Reportes";
-            // 
-            // descargarInventarioGlobalToolStripMenuItem
-            // 
-            this.descargarInventarioGlobalToolStripMenuItem.Name = "descargarInventarioGlobalToolStripMenuItem";
-            this.descargarInventarioGlobalToolStripMenuItem.Size = new System.Drawing.Size(219, 22);
-            this.descargarInventarioGlobalToolStripMenuItem.Text = "Descargar Inventario Global";
-            this.descargarInventarioGlobalToolStripMenuItem.Click += new System.EventHandler(this.descargarInventarioGlobalToolStripMenuItem_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -794,7 +794,7 @@
             this.Controls.Add(this.label13);
             this.Controls.Add(this.txtPresentacionSeleccionada);
             this.Controls.Add(this.label12);
-            this.Controls.Add(this.Menu);
+            this.Controls.Add(this.menuPrincipal);
             this.Controls.Add(this.label11);
             this.Controls.Add(this.label10);
             this.Controls.Add(this.dtpBuscarHasta);
@@ -825,15 +825,15 @@
             this.Controls.Add(this.label3);
             this.Cursor = System.Windows.Forms.Cursors.Hand;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MainMenuStrip = this.Menu;
+            this.MainMenuStrip = this.menuPrincipal;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Principal";
             this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.numCantidad)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.dgvKardex)).EndInit();
-            this.Menu.ResumeLayout(false);
-            this.Menu.PerformLayout();
+            this.menuPrincipal.ResumeLayout(false);
+            this.menuPrincipal.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -869,7 +869,7 @@
         private System.Windows.Forms.DateTimePicker dtpBuscarHasta;
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.Label label11;
-        private System.Windows.Forms.MenuStrip Menu;
+        private System.Windows.Forms.MenuStrip menuPrincipal;
         private System.Windows.Forms.ToolStripMenuItem estanteToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem agregarToolStripMenuItem2;
         private System.Windows.Forms.ToolStripMenuItem editarToolStripMenuItem2;
