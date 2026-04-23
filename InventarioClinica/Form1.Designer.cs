@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
@@ -63,6 +64,8 @@
             this.Column10 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column11 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column12 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.cmsKardex = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.eliminarEsteMovimientoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.label8 = new System.Windows.Forms.Label();
             this.txtCodigoSeleccionado = new System.Windows.Forms.TextBox();
             this.btnExportarExcel = new System.Windows.Forms.Button();
@@ -99,6 +102,7 @@
             this.dtpFechaVencimiento = new System.Windows.Forms.DateTimePicker();
             ((System.ComponentModel.ISupportInitialize)(this.numCantidad)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dgvKardex)).BeginInit();
+            this.cmsKardex.SuspendLayout();
             this.menuPrincipal.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -318,6 +322,7 @@
             this.Column10,
             this.Column11,
             this.Column12});
+            this.dgvKardex.ContextMenuStrip = this.cmsKardex;
             this.dgvKardex.Cursor = System.Windows.Forms.Cursors.IBeam;
             dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle4.BackColor = System.Drawing.SystemColors.Window;
@@ -333,7 +338,7 @@
             dataGridViewCellStyle5.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.dgvKardex.RowsDefaultCellStyle = dataGridViewCellStyle5;
             this.dgvKardex.RowTemplate.DefaultCellStyle.Font = new System.Drawing.Font("Calisto MT", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.dgvKardex.Size = new System.Drawing.Size(1247, 446);
+            this.dgvKardex.Size = new System.Drawing.Size(1506, 446);
             this.dgvKardex.TabIndex = 10;
             // 
             // Column1
@@ -424,6 +429,20 @@
             this.Column12.HeaderText = "Vencimiento";
             this.Column12.Name = "Column12";
             this.Column12.ReadOnly = true;
+            // 
+            // cmsKardex
+            // 
+            this.cmsKardex.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.eliminarEsteMovimientoToolStripMenuItem});
+            this.cmsKardex.Name = "cmsKardex";
+            this.cmsKardex.Size = new System.Drawing.Size(210, 26);
+            // 
+            // eliminarEsteMovimientoToolStripMenuItem
+            // 
+            this.eliminarEsteMovimientoToolStripMenuItem.Name = "eliminarEsteMovimientoToolStripMenuItem";
+            this.eliminarEsteMovimientoToolStripMenuItem.Size = new System.Drawing.Size(209, 22);
+            this.eliminarEsteMovimientoToolStripMenuItem.Text = "Eliminar este movimiento";
+            this.eliminarEsteMovimientoToolStripMenuItem.Click += new System.EventHandler(this.eliminarEsteMovimientoToolStripMenuItem_Click);
             // 
             // label8
             // 
@@ -573,7 +592,7 @@
             this.reportesToolStripMenuItem});
             this.menuPrincipal.Location = new System.Drawing.Point(0, 0);
             this.menuPrincipal.Name = "menuPrincipal";
-            this.menuPrincipal.Size = new System.Drawing.Size(1290, 24);
+            this.menuPrincipal.Size = new System.Drawing.Size(1549, 24);
             this.menuPrincipal.TabIndex = 24;
             this.menuPrincipal.Text = "menuStrip1";
             // 
@@ -590,21 +609,21 @@
             // agregarToolStripMenuItem2
             // 
             this.agregarToolStripMenuItem2.Name = "agregarToolStripMenuItem2";
-            this.agregarToolStripMenuItem2.Size = new System.Drawing.Size(180, 22);
+            this.agregarToolStripMenuItem2.Size = new System.Drawing.Size(117, 22);
             this.agregarToolStripMenuItem2.Text = "Agregar";
             this.agregarToolStripMenuItem2.Click += new System.EventHandler(this.agregarToolStripMenuItem2_Click);
             // 
             // editarToolStripMenuItem2
             // 
             this.editarToolStripMenuItem2.Name = "editarToolStripMenuItem2";
-            this.editarToolStripMenuItem2.Size = new System.Drawing.Size(180, 22);
+            this.editarToolStripMenuItem2.Size = new System.Drawing.Size(117, 22);
             this.editarToolStripMenuItem2.Text = "Editar";
             this.editarToolStripMenuItem2.Click += new System.EventHandler(this.editarToolStripMenuItem2_Click);
             // 
             // eliminarToolStripMenuItem2
             // 
             this.eliminarToolStripMenuItem2.Name = "eliminarToolStripMenuItem2";
-            this.eliminarToolStripMenuItem2.Size = new System.Drawing.Size(180, 22);
+            this.eliminarToolStripMenuItem2.Size = new System.Drawing.Size(117, 22);
             this.eliminarToolStripMenuItem2.Text = "Eliminar";
             this.eliminarToolStripMenuItem2.Click += new System.EventHandler(this.eliminarToolStripMenuItem2_Click);
             // 
@@ -785,7 +804,7 @@
             this.AutoSize = true;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.BackColor = System.Drawing.SystemColors.Control;
-            this.ClientSize = new System.Drawing.Size(1290, 870);
+            this.ClientSize = new System.Drawing.Size(1549, 870);
             this.Controls.Add(this.dtpFechaVencimiento);
             this.Controls.Add(this.label15);
             this.Controls.Add(this.dtpFechaCompra);
@@ -832,6 +851,7 @@
             this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.numCantidad)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.dgvKardex)).EndInit();
+            this.cmsKardex.ResumeLayout(false);
             this.menuPrincipal.ResumeLayout(false);
             this.menuPrincipal.PerformLayout();
             this.ResumeLayout(false);
@@ -904,6 +924,8 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn Column12;
         private System.Windows.Forms.ToolStripMenuItem reportesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem descargarInventarioGlobalToolStripMenuItem;
+        private System.Windows.Forms.ContextMenuStrip cmsKardex;
+        private System.Windows.Forms.ToolStripMenuItem eliminarEsteMovimientoToolStripMenuItem;
     }
 }
 

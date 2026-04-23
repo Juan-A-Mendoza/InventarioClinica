@@ -28,7 +28,7 @@ namespace InventarioClinica
             dtpBuscarHasta.Value = DateTime.Now;
             dtpFecha.Value = DateTime.Now;
         }
-        
+
         private void CargarEstantes()
         {
             using (var conexion = new SqliteConnection(cadenaConexion))
@@ -109,7 +109,7 @@ namespace InventarioClinica
             }
         }
 
-    
+
 
         private void btnRegistrar_Click(object sender, EventArgs e)
         {
@@ -166,7 +166,7 @@ namespace InventarioClinica
                     return;
                 }
 
-                            string queryInsertar = @"INSERT INTO Movimientos 
+                string queryInsertar = @"INSERT INTO Movimientos 
                 (CodigoArticulo, Fecha, Documento, Entrada, Salida, Existencia, Observaciones, Lote, FechaCompra, FechaVencimiento) 
                 VALUES (@Codigo, @Fecha, @Documento, @Entrada, @Salida, @Existencia, @Observaciones, @Lote, @FechaCompra, @FechaVencimiento)";
 
@@ -224,6 +224,7 @@ namespace InventarioClinica
                 // Unimos las tablas Movimientos y Articulos para tener todos los datos completos
                 string query = @"
             SELECT 
+                m.Id,
                 m.Fecha, 
                 a.Nombre, 
                 m.CodigoArticulo, 
@@ -260,7 +261,7 @@ namespace InventarioClinica
                             string fVencFormato = reader["FechaVencimiento"] != DBNull.Value ? reader["FechaVencimiento"].ToString() : "-";
 
                             // Agregamos la fila a tu DataGridView exactamente en el orden de tus columnas
-                            dgvKardex.Rows.Add(
+                            int indiceFila =dgvKardex.Rows.Add(
                                 reader["Fecha"].ToString(),
                                 reader["Nombre"].ToString(),
                                 reader["CodigoArticulo"].ToString(),
@@ -274,6 +275,7 @@ namespace InventarioClinica
                                 fCompraFormato,
                                 fVencFormato
                             );
+                            dgvKardex.Rows[indiceFila].Tag = Convert.ToInt64(reader["Id"]);
                         }
                     }
                 }
@@ -286,7 +288,7 @@ namespace InventarioClinica
             {
                 DataRowView drv = cmbArticulos.SelectedItem as DataRowView;
 
-                if(drv != null)
+                if (drv != null)
                 {
                     string codigo = drv["Codigo"].ToString();
                     string presentacion = drv["Presentacion"].ToString();
@@ -297,7 +299,7 @@ namespace InventarioClinica
                     ActualizarTablaKardex(codigo);
                 }
             }
-            
+
         }
 
         private void btnExportarExcel_Click(object sender, EventArgs e)
@@ -636,11 +638,11 @@ namespace InventarioClinica
 
             dgvKardex.CurrentCell = null; // Desseleccionamos cualquier celda para evitar problemas al ocultar filas
 
-           foreach (DataGridViewRow fila in dgvKardex.Rows)
+            foreach (DataGridViewRow fila in dgvKardex.Rows)
             {
                 if (fila.IsNewRow) continue;
 
-                string fehaStr = fila.Cells[0].Value?.ToString() ??""; 
+                string fehaStr = fila.Cells[0].Value?.ToString() ?? "";
 
                 if (DateTime.TryParseExact(fehaStr, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime fechaFila))
                 {
@@ -1058,6 +1060,7 @@ namespace InventarioClinica
                                         string nombre = worksheet.Cell(fila, 1).GetString().Trim();
                                         string codigo = worksheet.Cell(fila, 2).GetString().Trim();
                                         string presentacion = worksheet.Cell(fila, 3).GetString().Trim();
+                                        int.TryParse(worksheet.Cell(fila, 4).GetString(), out int stockMinimo);
 
                                         if (string.IsNullOrEmpty(codigo)) { fila++; continue; }
 
@@ -1073,12 +1076,12 @@ namespace InventarioClinica
                                             {
                                                 queryFinal = @"INSERT INTO Articulos 
                                             (Codigo, Nombre, Presentacion, IdEstante, Concentracion, MaximaCantidad, PideMasVencera, MinimaCantidad) 
-                                            VALUES (@cod, @nom, @pre, @est, '', 0, '', 0)";
+                                            VALUES (@cod, @nom, @pre, @est, '', 0, '', @min)";
                                             }
                                             else
                                             {
                                                 queryFinal = @"UPDATE Articulos 
-                                            SET Nombre = @nom, Presentacion = @pre, IdEstante = @est 
+                                            SET Nombre = @nom, Presentacion = @pre, IdEstante = @est, MinimaCantidad = @min
                                             WHERE Codigo = @cod";
                                             }
 
@@ -1088,6 +1091,7 @@ namespace InventarioClinica
                                                 cmdAccion.Parameters.AddWithValue("@nom", string.IsNullOrEmpty(nombre) ? "Sin Nombre" : nombre);
                                                 cmdAccion.Parameters.AddWithValue("@pre", presentacion);
                                                 cmdAccion.Parameters.AddWithValue("@est", idEstanteDestino); // ¡Se va al estante correcto automáticamente!
+                                                cmdAccion.Parameters.AddWithValue("@min", stockMinimo);
                                                 cmdAccion.ExecuteNonQuery();
                                             }
                                         }
@@ -1139,7 +1143,7 @@ namespace InventarioClinica
                     using (var workbook = new XLWorkbook())
                     {
                         // Creamos una hoja sencilla
-                        var ws = workbook.Worksheets.Add("Carga Masiva");
+                        var ws = workbook.Worksheets.Add("PONER NOMBRE DEL ESTANTE!");
 
                         // ==========================================
                         // 1. ENCABEZADOS (Fila 1)
@@ -1147,12 +1151,13 @@ namespace InventarioClinica
                         ws.Cell("A1").Value = "NOMBRE DEL ARTÍCULO";
                         ws.Cell("B1").Value = "CÓDIGO (Obligatorio)";
                         ws.Cell("C1").Value = "PRESENTACIÓN";
+                        ws.Cell("D1").Value = "STOCK MÍNIMO";
 
                         // Le damos formato visual de "Tabla" a los encabezados
-                        var rangoHeaders = ws.Range("A1:C1");
+                        var rangoHeaders = ws.Range("A1:D1");
                         rangoHeaders.Style.Font.Bold = true;
                         rangoHeaders.Style.Font.FontColor = XLColor.White;
-                        rangoHeaders.Style.Fill.BackgroundColor = XLColor.DarkBlue; // Un color institucional
+                        rangoHeaders.Style.Fill.BackgroundColor = XLColor.MediumPurple; // Un color institucional
                         rangoHeaders.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                         rangoHeaders.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
                         rangoHeaders.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
@@ -1163,9 +1168,10 @@ namespace InventarioClinica
                         ws.Cell("A2").Value = "[Ej: Sonda Levin 8]";
                         ws.Cell("B2").Value = "[Ej: 02140306]";
                         ws.Cell("C2").Value = "[Ej: Unidad / Caja x 100]";
+                        ws.Cell("D2").Value = "10";
 
                         // Ponemos el ejemplo en gris cursiva para que sepan que deben borrarlo
-                        var rangoEjemplo = ws.Range("A2:C2");
+                        var rangoEjemplo = ws.Range("A2:D2");
                         rangoEjemplo.Style.Font.Italic = true;
                         rangoEjemplo.Style.Font.FontColor = XLColor.Gray;
 
@@ -1176,6 +1182,7 @@ namespace InventarioClinica
                         ws.Column(1).Width = 40; // Nombre
                         ws.Column(2).Width = 25; // Código
                         ws.Column(3).Width = 35; // Presentación
+                        ws.Column(4).Width = 20; // Stock Mínimo
 
                         workbook.SaveAs(dialog.FileName);
                         MessageBox.Show("Plantilla de carga masiva descargada con éxito.\n\nEl personal puede llenarla borrando la fila de ejemplo y luego subirla desde el menú 'Artículos -> Importar Carga Masiva'.", "Plantilla Lista", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1308,7 +1315,102 @@ namespace InventarioClinica
                 }
             }
         }
+        private void RecalcularStockArticulo(string codigoArticulo)
+        {
+            using (var conexion = new SqliteConnection(cadenaConexion))
+            {
+                conexion.Open();
+                using (var transaccion = conexion.BeginTransaction())
+                {
+                    try
+                    {
+                        // 1. Obtenemos todos los movimientos ordenados por ID (orden real de sucesos)
+                        string query = "SELECT Id, Entrada, Salida FROM Movimientos WHERE CodigoArticulo = @cod ORDER BY Id ASC";
+                        var movimientos = new List<dynamic>();
+
+                        using (var cmd = new SqliteCommand(query, conexion, transaccion))
+                        {
+                            cmd.Parameters.AddWithValue("@cod", codigoArticulo);
+                            using (var reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    movimientos.Add(new
+                                    {
+                                        Id = reader.GetInt64(0),
+                                        Entrada = reader.IsDBNull(1) ? 0 : reader.GetInt32(1),
+                                        Salida = reader.IsDBNull(2) ? 0 : reader.GetInt32(2)
+                                    });
+                                }
+                            }
+                        }
+
+                        // 2. Recalculamos la existencia paso a paso
+                        int existenciaAcumulada = 0;
+                        foreach (var m in movimientos)
+                        {
+                            existenciaAcumulada += m.Entrada;
+                            existenciaAcumulada -= m.Salida;
+
+                            // 3. Actualizamos el registro en la base de datos con el nuevo saldo corregido
+                            string queryUpdate = "UPDATE Movimientos SET Existencia = @nuevaEx WHERE Id = @id";
+                            using (var cmdUpd = new SqliteCommand(queryUpdate, conexion, transaccion))
+                            {
+                                cmdUpd.Parameters.AddWithValue("@nuevaEx", existenciaAcumulada);
+                                cmdUpd.Parameters.AddWithValue("@id", m.Id);
+                                cmdUpd.ExecuteNonQuery();
+                            }
+                        }
+
+                        transaccion.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        transaccion.Rollback();
+                        MessageBox.Show("Error al recalcular: " + ex.Message);
+                    }
+                }
+            }
+        }
+
+        private void eliminarEsteMovimientoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (dgvKardex.CurrentRow == null) return;
+
+            // Obtenemos los datos de la fila seleccionada
+            string fecha = dgvKardex.CurrentRow.Cells[0].Value.ToString();
+            string codigoArticulo = txtCodigoSeleccionado.Text;
+
+            // Necesitamos el ID oculto. Si no lo tienes en el DGV, asegúrate de que la consulta SQL de ActualizarTablaKardex incluya m.Id y asígnalo a una columna oculta.
+            // Asumiendo que guardaste el ID en una columna invisible o que puedes identificarlo de otra forma:
+
+            if (MessageBox.Show($"¿Estás seguro de eliminar el movimiento del día {fecha}?\nEl stock de los registros posteriores se ajustará automáticamente.",
+                "Confirmar eliminación", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                using (var conexion = new SqliteConnection(cadenaConexion))
+                {
+                    conexion.Open();
+                    // Aquí lo ideal es usar el ID del movimiento para no borrar otros del mismo día por error
+                    string queryBorrar = "DELETE FROM Movimientos WHERE Id = @id";
+
+                    // TIP: Para obtener el ID, podrías haberlo cargado en el Tag de la fila o en una columna oculta
+                    long idMovimiento = (long)dgvKardex.CurrentRow.Tag;
+
+                    using (var cmd = new SqliteCommand(queryBorrar, conexion))
+                    {
+                        cmd.Parameters.AddWithValue("@id", idMovimiento);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+                // ¡MAGIA! Recalculamos todo el historial de este artículo para que los saldos cuadren
+                RecalcularStockArticulo(codigoArticulo);
+
+                // Refrescamos la tabla visual
+                ActualizarTablaKardex(codigoArticulo);
+
+                MessageBox.Show("Movimiento eliminado y stock recalculado.");
+            }
+        }
     }
-    
-    
 }
